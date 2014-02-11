@@ -61,7 +61,13 @@
                 <action android:name="ustc.ssqstone.xueba.MonitorService" />
             </intent-filter>
         </service>
-
+        
+		<receiver android:name="ustc.ssqstone.xueba.ShutdownReceiver">    
+            <intent-filter>    
+                <action android:name="android.intent.action.ACTION_SHUTDOWN"/>    
+            </intent-filter>    
+        </receiver>  
+        
         <receiver android:name="ustc.ssqstone.xueba.BootReceiver" >
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED" />

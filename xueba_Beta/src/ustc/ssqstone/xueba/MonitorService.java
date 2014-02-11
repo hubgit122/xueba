@@ -2,9 +2,13 @@
 package ustc.ssqstone.xueba;
 
 import java.util.Calendar;
-import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
+import com.renn.rennsdk.RennClient;
+import com.renn.rennsdk.RennResponse;
+import com.renn.rennsdk.RennExecutor.CallBack;
+import com.renn.rennsdk.exception.RennException;
+import com.renn.rennsdk.param.AccessControl;
+import com.renn.rennsdk.param.PutBlogParam;
 
 import android.app.ActivityManager;
 import android.app.ActivityManager.RunningTaskInfo;
@@ -84,12 +88,39 @@ public class MonitorService extends Service
 			return chineseString;
 		}
 	}
+	private void reportPhoneUsage()
+	{
+        PutBlogParam param2 = new PutBlogParam();
+        param2.setTitle("这是一篇日志");
+        param2.setContent("为什么有几个点? ");
+        //param2.setPassword("123456");
+        param2.setAccessControl(AccessControl.PUBLIC);
+        try {
+        	RennClient rennClient = XueBaYH.getApp().iniRennClient(MonitorService.this);
+        	
+			rennClient.getRennService().sendAsynRequest(param2, new CallBack()
+			{
+				@Override
+				public void onSuccess(RennResponse response)
+				{
+					XueBaYH.getApp().showToast("日志发表成功");
+				}
+				
+				@Override
+				public void onFailed(String errorCode, String errorMessage)
+				{
+					XueBaYH.getApp().showToast("日志发表失败");
+				}
+			});
+        } catch (RennException e1) {
+            e1.printStackTrace();
+        }
+	}
 	
 	@Override
 	public void onCreate()
 	{
 		super.onCreate();
-
 		screenOffBroadcastReceiver = new BroadcastReceiver()
 		{
 			@Override
@@ -311,13 +342,9 @@ public class MonitorService extends Service
 	 * 调试发现卸载app或者关机的时候不会调用onDestroy. 
 	 */
 	@Override
+	//在设置里强行退出会引发这个函数, 但是使用任务管理软件强行退出就不会进入这个函数了. 
 	public void onDestroy()
 	{
-//		Message message = new Message();
-//		message.what = SMS;
-//		message.obj = "我很可能偷偷关闭了学霸银魂, 这是极端恶劣的行为. ";
-//		handler.sendMessage(message);
-		
 		unregisterReceiver(screenOffBroadcastReceiver);
 		unregisterReceiver(screenOnBroadcastReceiver);
 		stopCurrentMonitorThread();
@@ -359,20 +386,15 @@ public class MonitorService extends Service
 		@Override
 		public void run()
 		{
-//			mConditionVariable.block(2000);
-			
-			while (true)//(!screenLocked)
+			while (true)
 			{
 				if (notPermitted())
 				{
 					Message message=new Message();
 					message.what=TO_RESTRICT;
 					handler.sendMessage(message);
-//					toRestrict();
 				}
 				loadStatus();
-//				mConditionVariable.close();
-//				handler.sendEmptyMessage(UPDATE);
 				if (mConditionVariable.block(checkInterval))
 				{
 					return;
@@ -422,7 +444,7 @@ public class MonitorService extends Service
 		if (status==Status.halting)
 		{
 			SharedPreferences values= getSharedPreferences(XueBaYH.VALUES, MODE_PRIVATE);
-			// TO-DO
+			// TODO
 			
 			if ("com.UCMobile com.uc.browser com.android.chrome com.android.browser com.dolphin.browser.xf com.tencent.mtt sogou.mobile.explorer com.baidu.browser.apps com.oupeng.mini.android ".contains(packageName))
 			{

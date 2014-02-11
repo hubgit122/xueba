@@ -5,16 +5,20 @@ import java.util.Calendar;
 import java.util.Iterator;
 import java.util.List;
 
+import com.renn.rennsdk.RennClient;
 import android.app.ActivityManager;
 import android.app.ActivityManager.RunningAppProcessInfo;
 import android.app.Application;
+import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.content.SharedPreferences.Editor;
 import android.os.Vibrator;
 import android.telephony.SmsManager;
 import android.telephony.TelephonyManager;
+import android.util.Log;
 import android.widget.Toast;
 
 /**
@@ -24,6 +28,7 @@ import android.widget.Toast;
  */
 public class XueBaYH extends Application
 {
+	protected static final String	SHUTDOWN_TIME	= "shutdowntime";
 	protected static final boolean myself = true;
 	protected static final boolean debug = false;
 
@@ -65,21 +70,55 @@ public class XueBaYH extends Application
 	private static final String	SMS_LOG	= "sms_log";
 	protected static XueBaYH ApplicationContext;
 //	protected static boolean confirmPhone;
+
+	static final String APP_ID = "168802";
+	static final String API_KEY = "e884884ac90c4182a426444db12915bf";
+	static final String SECRET_KEY = "094de55dc157411e8a5435c6a7c134c5";
 	
-	private Toast toast=null;
+	private BroadcastReceiver shutdownBroadcastReceiver;
+	
+//	private Toast toast=null;
+	protected RennClient rennClient;
 	
 	public void onCreate()
 	{
 		super.onCreate();
 		ApplicationContext = this;
+
+		shutdownBroadcastReceiver= new BroadcastReceiver()
+		{
+			@Override
+			public void onReceive(Context context, Intent intent)
+			{
+				onShutdown();
+				Log.i("","用广播接收器得到的关机信号");
+			}
+		};
+		
+		IntentFilter intentFilter;
+		intentFilter = new IntentFilter();
+		intentFilter.addAction(Intent.ACTION_SHUTDOWN);
+		registerReceiver(shutdownBroadcastReceiver, intentFilter);
 //		confirmPhone= false;
 	}
 	
+	@Override
+	public void onTerminate()
+	{
+		unregisterReceiver(shutdownBroadcastReceiver);
+		super.onTerminate();
+	}
+
 	protected static XueBaYH getApp()
 	{
 		return ApplicationContext;
 	}
 
+	protected void startReportService()
+	{
+		startService(new Intent("ustc.ssqstone.xueba.ReportService"));
+	}
+	
 	protected void restartMonitorService()
 	{
 //		stopService(new Intent("ustc.ssqstone.xueba.MonitorService"));		//在Service退出的时候加入短信通知, 所以不能在此关闭. 其实关闭Service没啥意思. 
@@ -127,16 +166,17 @@ public class XueBaYH extends Application
 	
 	protected void showToast(String string) 
 	{
-		if (toast == null)
-		{
-			toast = Toast.makeText(this, string, Toast.LENGTH_LONG);
-			toast.show();
-		}
-		else
-		{
-			toast.cancel();
-			toast = null;
-		}
+//		if (toast == null)
+//		{
+//			toast = Toast.makeText(this, string, Toast.LENGTH_LONG);
+//			toast.show();
+//		}
+//		else
+//		{
+//			toast.cancel();
+//			toast = null;
+//		}
+		Toast.makeText(this, string, Toast.LENGTH_LONG).show();
 	}
 	
 //	protected void showShortToast(String string)
@@ -189,6 +229,7 @@ public class XueBaYH extends Application
 				+ Math.log((double) sharedPreferences.getLong(NIGHT_END, 0)) *124
 				+ Math.log((double) sharedPreferences.getLong(NOON_END, 0)) *14314
 				+ Math.log((double) Long.valueOf(sharedPreferences.getString(PHONE_NUM, myself?我s:我的监督人s))) *14314
+				+ Math.log((double) Long.valueOf(sharedPreferences.getLong(SHUTDOWN_TIME, 0))) *143
 				);
 		return (long) result;
 	}
@@ -270,5 +311,29 @@ public class XueBaYH extends Application
 		}
 		
 		showToast("已清理后台应用. ");
+	}
+	
+	public RennClient iniRennClient(Context context)
+	{
+		rennClient = RennClient.getInstance(context);
+		rennClient.init(XueBaYH.APP_ID, XueBaYH.API_KEY, XueBaYH.SECRET_KEY);
+		rennClient
+				.setScope("read_user_blog read_user_photo read_user_status read_user_album "
+						+ "read_user_comment read_user_share publish_blog publish_share "
+						+ "send_notification photo_upload status_update create_album "
+						+ "publish_comment publish_feed");
+		rennClient.setTokenType("bearer");		
+		return rennClient;
+	}
+
+	public void onShutdown()
+	{
+		Calendar calendar = Calendar.getInstance();
+		SharedPreferences sharedPreferences = getSharedPreferences(VALUES, MODE_PRIVATE);
+		Editor editor = sharedPreferences.edit();
+		editor.putLong(SHUTDOWN_TIME, calendar.getTimeInMillis());
+		editor.commit();
+		editor.putLong(PARITY, getParity());
+		editor.commit();
 	}
 }
