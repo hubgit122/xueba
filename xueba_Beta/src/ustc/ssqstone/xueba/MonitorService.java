@@ -3,6 +3,9 @@ package ustc.ssqstone.xueba;
 
 import java.util.Calendar;
 import java.util.List;
+
+import ustc.ssqstone.xueba.MonitorService.StoppableRunnable;
+
 import com.renn.rennsdk.RennClient;
 import com.renn.rennsdk.RennResponse;
 import com.renn.rennsdk.RennExecutor.CallBack;
@@ -20,10 +23,14 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.content.SharedPreferences.Editor;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.os.ConditionVariable;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Message;
+import android.support.v4.app.TaskStackBuilderHoneycomb;
+import android.util.Log;
 
 /**
  * 发现一个bug，studyEn的值会在我看不到的地方发生翻转。
@@ -71,6 +78,8 @@ public class MonitorService extends Service
 	private int checkInterval;
 	private boolean informed;
 	static private Handler handler;
+
+	private NetStateReceiver netStateReceiver;
 	
 	protected enum Status
 	{
@@ -88,6 +97,7 @@ public class MonitorService extends Service
 			return chineseString;
 		}
 	}
+	
 	private void reportPhoneUsage()
 	{
         PutBlogParam param2 = new PutBlogParam();
@@ -121,13 +131,13 @@ public class MonitorService extends Service
 	public void onCreate()
 	{
 		super.onCreate();
+		
 		screenOffBroadcastReceiver = new BroadcastReceiver()
 		{
 			@Override
 			public void onReceive(Context context, Intent intent)
 			{
-//				screenLocked=true;
-				stopCurrentMonitorThread();
+				stopCurrentThread(monitorTask);
 			}
 		};
 		screenOnBroadcastReceiver = new BroadcastReceiver()
@@ -135,11 +145,24 @@ public class MonitorService extends Service
 			@Override
 			public void onReceive(Context context, Intent intent)
 			{
-//				screenLocked=false;
-				startMonitorThread();
+				startThread(MonitorTask.class.getName());
 			}
 		};
 		
+		netStateReceiver=new NetStateReceiver();
+		
+		IntentFilter intentFilter = new IntentFilter();
+		intentFilter.addAction(ConnectivityManager.CONNECTIVITY_ACTION);
+		this.registerReceiver(netStateReceiver, intentFilter);
+
+		intentFilter = new IntentFilter();
+		intentFilter.addAction(Intent.ACTION_SCREEN_ON);
+		registerReceiver(screenOnBroadcastReceiver, intentFilter);
+		
+		intentFilter = new IntentFilter();
+		intentFilter.addAction(Intent.ACTION_SCREEN_OFF);
+		registerReceiver(screenOffBroadcastReceiver, intentFilter);
+
 		handler = new Handler()
 		{
 			@Override
@@ -279,14 +302,12 @@ public class MonitorService extends Service
 			editor.putBoolean(XueBaYH.NOON_EN, false);
 			noonEn=false;
 			removeRestriction = true;
-//			setOnLine();		//TODO
 		}
 		if(nightEn && (calendar.getTimeInMillis()>nightEnd))
 		{
 			editor.putBoolean(XueBaYH.NIGHT_EN, false);
 			nightEn = false;
 			removeRestriction = true;
-//			setOnLine();		//TODO
 		}
 		
 		if (removeRestriction)
@@ -307,8 +328,10 @@ public class MonitorService extends Service
 	private Status status;
 	private BroadcastReceiver screenOnBroadcastReceiver;
 	private BroadcastReceiver screenOffBroadcastReceiver;
-	private InformTimeOutTask monitorTask;
+	private MonitorTask monitorTask;
 	private Thread monitorThread;
+	private WriteTimeTask	writeTimeTask;
+	private Thread writeTimeThread;
 //	private final int NOTIFICATION_ID=1;
 //	private final int UPDATE = 2; 
 	
@@ -318,18 +341,10 @@ public class MonitorService extends Service
 		
 		loadStatus();
 		
-		IntentFilter intentFilter;
-		intentFilter = new IntentFilter();
-		intentFilter.addAction(Intent.ACTION_SCREEN_ON);
-		registerReceiver(screenOnBroadcastReceiver, intentFilter);
-		
-		intentFilter = new IntentFilter();
-		intentFilter.addAction(Intent.ACTION_SCREEN_OFF);
-		registerReceiver(screenOffBroadcastReceiver, intentFilter);
-
 //		startForeground(NOTIFICATION_ID, updateNotification());
 		
-		startMonitorThread();
+		startThread(MonitorTask.class.getName());
+		startThread(WriteTimeTask.class.getName());
 		return START_STICKY;
 	}
 	
@@ -345,9 +360,11 @@ public class MonitorService extends Service
 	//在设置里强行退出会引发这个函数, 但是使用任务管理软件强行退出就不会进入这个函数了. 
 	public void onDestroy()
 	{
+		unregisterReceiver(netStateReceiver);
 		unregisterReceiver(screenOffBroadcastReceiver);
 		unregisterReceiver(screenOnBroadcastReceiver);
-		stopCurrentMonitorThread();
+		stopCurrentThread(monitorTask);
+		stopCurrentThread(writeTimeTask);
 		
 		super.onDestroy();
 		
@@ -369,6 +386,16 @@ public class MonitorService extends Service
 		return (long) log.getFloat(surfTimeIndexString, 12)*(Math.abs(lastSurfDateString.hashCode())%2354667);
 	}
 	
+	protected class StoppableRunnable implements Runnable
+	{
+		protected ConditionVariable mConditionVariable = new ConditionVariable(false);
+
+		@Override
+		public void run()
+		{
+		}
+	}
+	
 	/**
 	 * 监视线程. 检查活动activity是不是被允许的. 
 	 * 时间步长根据当前需要监视的状态确定. 
@@ -376,10 +403,8 @@ public class MonitorService extends Service
 	 * 
 	 * @author ssqstone
 	 */
-	private class InformTimeOutTask implements Runnable
+	private class MonitorTask extends StoppableRunnable 
 	{
-		private ConditionVariable mConditionVariable = new ConditionVariable(false);
-		
 		/**
 		 * 主循环内检查是否锁屏在最先, 等待延时结束在最后, 最节省运行时间. 
 		 */
@@ -403,6 +428,46 @@ public class MonitorService extends Service
 		}
 	}
 
+	private class NetStateReceiver extends BroadcastReceiver
+	{
+		@Override
+		public void onReceive(Context arg0, Intent arg1) 
+		{
+			ConnectivityManager manager = (ConnectivityManager)getSystemService(Context.CONNECTIVITY_SERVICE);
+			 NetworkInfo gprs = manager.getNetworkInfo(ConnectivityManager.TYPE_MOBILE);
+			 NetworkInfo wifi = manager.getNetworkInfo(ConnectivityManager.TYPE_WIFI);
+			 if(gprs.isConnected() || !wifi.isConnected())
+			 {
+					// TODO 检查是否有未尽事宜. 
+			 }
+		}
+	}
+	
+	private class WriteTimeTask extends StoppableRunnable 
+	{
+		/**
+		 * 主循环内检查是否锁屏在最先, 等待延时结束在最后, 最节省运行时间. 
+		 */
+		@Override
+		public void run()
+		{
+			while (true)
+			{
+				Calendar calendar = Calendar.getInstance();
+				SharedPreferences sharedPreferences = getSharedPreferences(XueBaYH.VALUES, MODE_PRIVATE);
+				Editor editor = sharedPreferences.edit();
+				editor.putLong(XueBaYH.LAST_WRITE, calendar.getTimeInMillis());
+				editor.commit();
+				editor.putLong(XueBaYH.PARITY, XueBaYH.getApp().getParity());
+				editor.commit();
+
+				if (mConditionVariable.block(60*1000))			//每分钟记录一次
+				{
+					return;
+				}
+			}
+		}
+	}
 	/**
 	 * 根据是否在监视时间段, 判断检查时间: 锁屏时几乎关闭(随便给一个很长的值); 不在监视时间段,1分钟; 在监视时间段, 0.1秒钟. 
 	 * 虽然0.1秒钟的检查频率比较高, 但锁屏的时候监视线程被释放, 不会浪费运行资源. 设检查频率为0.1秒是为了防止有时间调到主屏幕删除该应用. 
@@ -506,26 +571,44 @@ public class MonitorService extends Service
 	
 	/**
 	 * 开始监视进程
+	 * @param thread TODO
+	 * @param task TODO
 	 */
-	private void startMonitorThread()
+	private void startThread(String taskClassName)
 	{
-		if (monitorThread !=null)
+		Thread thread = null;
+		StoppableRunnable task = null;
+		
+		if (taskClassName.equals(MonitorTask.class.getName()))
 		{
-			stopCurrentMonitorThread();
+			thread = monitorThread;
+			task = monitorTask = new MonitorTask();
 		}
-//		screenLocked = false;
-		monitorTask = new InformTimeOutTask();
-		monitorThread = new Thread(null, monitorTask, "Monitoring");
-		monitorThread.start();
+		else if (taskClassName.equals(WriteTimeTask.class.getName())) 
+		{
+			thread = writeTimeThread;
+			task = writeTimeTask = new WriteTimeTask();
+		}
+
+		if (thread !=null)
+		{
+			stopCurrentThread(task);
+		}
+		
+		thread = new Thread(null, task, taskClassName);
+		thread.start();
 	}
 	
 	/**
 	 * 完全释放监视进程
+	 * @param task TODO
 	 */
-	private void stopCurrentMonitorThread()
+	private void stopCurrentThread(StoppableRunnable task)
 	{
-//		screenLocked = true;
-		monitorTask.mConditionVariable.open();
+		if (task!=null)
+		{
+			task.mConditionVariable.open();
+		}
 	}
 	
 //	private Notification updateNotification()
@@ -582,135 +665,3 @@ public class MonitorService extends Service
 //		return notification;
 //	}
 }
-
-///**
-// * 
-// * @author zhangyg
-// * 
-// */
-//class ScreenObserver
-//{
-//	private static String TAG = "ScreenObserver";
-//	protected Context mContext;
-//	private ScreenBroadcastReceiver mScreenReceiver;
-//	private ScreenStateListener mScreenStateListener;
-//	private static Method mReflectScreenState;
-//
-//	public ScreenObserver(Context context)
-//	{
-//		mContext = context;
-//		mScreenReceiver = new ScreenBroadcastReceiver();
-//		try
-//		{
-//			mReflectScreenState = PowerManager.class.getMethod("isScreenOn",
-//					new Class[] {});
-//		} catch (NoSuchMethodException nsme)
-//		{
-//			Log.d(TAG, "API < 7," + nsme);
-//		}
-//	}
-//
-//	/**
-//	 * screen状态广播接收者
-//	 * 
-//	 * @author zhangyg
-//	 * 
-//	 */
-//	private class ScreenBroadcastReceiver extends BroadcastReceiver
-//	{
-//		private String action = null;
-//
-//		@Override
-//		public void onReceive(Context context, Intent intent)
-//		{
-//			action = intent.getAction();
-//			if (Intent.ACTION_SCREEN_ON.equals(action))
-//			{
-//				mScreenStateListener.onScreenOn();
-//			} else if (Intent.ACTION_SCREEN_OFF.equals(action))
-//			{
-//				mScreenStateListener.onScreenOff();
-//			}
-//		}
-//	}
-//
-//	/**
-//	 * 请求screen状态更新
-//	 * 
-//	 * @param listener
-//	 */
-//	public void requestScreenStateUpdate(ScreenStateListener listener)
-//	{
-//		mScreenStateListener = listener;
-//		startScreenBroadcastReceiver();
-//
-//		firstGetScreenState();
-//	}
-//
-//	/**
-//	 * 第一次请求screen状态
-//	 */
-//	private void firstGetScreenState()
-//	{
-//		PowerManager manager = (PowerManager) mContext
-//				.getSystemService(Activity.POWER_SERVICE);
-//		if (isScreenOn(manager))
-//		{
-//			if (mScreenStateListener != null)
-//			{
-//				mScreenStateListener.onScreenOn();
-//			}
-//		} else
-//		{
-//			if (mScreenStateListener != null)
-//			{
-//				mScreenStateListener.onScreenOff();
-//			}
-//		}
-//	}
-//
-//	/**
-//	 * 停止screen状态更新
-//	 */
-//	public void stopScreenStateUpdate()
-//	{
-//		mContext.unregisterReceiver(mScreenReceiver);
-//	}
-//
-//	/**
-//	 * 启动screen状态广播接收器
-//	 */
-//	private void startScreenBroadcastReceiver()
-//	{
-//		IntentFilter filter = new IntentFilter();
-//		filter.addAction(Intent.ACTION_SCREEN_ON);
-//		filter.addAction(Intent.ACTION_SCREEN_OFF);
-//		mContext.registerReceiver(mScreenReceiver, filter);
-//	}
-//
-//	/**
-//	 * screen是否打开状态
-//	 * 
-//	 * @param pm
-//	 * @return
-//	 */
-//	protected static boolean isScreenOn(PowerManager pm)
-//	{
-//		boolean screenState;
-//		try
-//		{
-//			screenState = (Boolean) mReflectScreenState.invoke(pm);
-//		} catch (Exception e)
-//		{
-//			screenState = false;
-//		}
-//		return screenState;
-//	}
-//
-//	public interface ScreenStateListener
-//	{
-//		public void onScreenOn();
-//
-//		public void onScreenOff();
-//	}
-//}

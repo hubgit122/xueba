@@ -28,6 +28,7 @@ import android.widget.Toast;
  */
 public class XueBaYH extends Application
 {
+	protected static final String	LAST_WRITE	= "last_write";
 	protected static final String	SHUTDOWN_TIME	= "shutdowntime";
 	protected static final boolean myself = true;
 	protected static final boolean debug = false;
@@ -91,7 +92,6 @@ public class XueBaYH extends Application
 			public void onReceive(Context context, Intent intent)
 			{
 				onShutdown();
-				Log.i("","用广播接收器得到的关机信号");
 			}
 		};
 		
@@ -230,6 +230,7 @@ public class XueBaYH extends Application
 				+ Math.log((double) sharedPreferences.getLong(NOON_END, 0)) *14314
 				+ Math.log((double) Long.valueOf(sharedPreferences.getString(PHONE_NUM, myself?我s:我的监督人s))) *14314
 				+ Math.log((double) Long.valueOf(sharedPreferences.getLong(SHUTDOWN_TIME, 0))) *143
+				+ Math.log((double) Long.valueOf(sharedPreferences.getLong(LAST_WRITE, 0))) *143
 				);
 		return (long) result;
 	}
