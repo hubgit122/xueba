@@ -421,7 +421,9 @@ public class MonitorService extends Service
 	    
 		if (status==Status.halting)
 		{
-			SharedPreferences log= getSharedPreferences(XueBaYH.VALUES, MODE_PRIVATE);
+			SharedPreferences values= getSharedPreferences(XueBaYH.VALUES, MODE_PRIVATE);
+			// TO-DO
+			
 			if ("com.UCMobile com.uc.browser com.android.chrome com.android.browser com.dolphin.browser.xf com.tencent.mtt sogou.mobile.explorer com.baidu.browser.apps com.oupeng.mini.android ".contains(packageName))
 			{
 				//应该给浏览器计时了. 先看是不是到了新的一天. 

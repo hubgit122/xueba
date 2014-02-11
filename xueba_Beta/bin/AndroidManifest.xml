@@ -1,22 +1,30 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="ustc.ssqstone.xueba"
     android:versionCode="1"
-    android:versionName="1.3">
+    android:versionName="1.3" >
 
     <uses-sdk
         android:minSdkVersion="9"
         android:targetSdkVersion="19" />
-    
-	<uses-permission android:name="android.permission.GET_TASKS"/>
-	<uses-permission android:name="android.permission.READ_PHONE_STATE" />
-	<uses-permission android:name="android.permission.READ_CONTACTS" />
-	<uses-permission android:name="android.permission.SEND_SMS"/>
+
+    <uses-permission android:name="android.permission.GET_TASKS" />
+    <uses-permission android:name="android.permission.READ_PHONE_STATE" />
+    <uses-permission android:name="android.permission.READ_CONTACTS" />
+    <uses-permission android:name="android.permission.SEND_SMS" />
     <uses-permission android:name="android.permission.WRITE_SETTINGS" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
-	<uses-permission android:name="android.permission.DISABLE_KEYGUARD"/> 
-	<uses-permission android:name="android.permission.VIBRATE" />
-	<uses-permission android:name="android.permission.KILL_BACKGROUND_PROCESSES" />
-	
+    <uses-permission android:name="android.permission.DISABLE_KEYGUARD" />
+    <uses-permission android:name="android.permission.VIBRATE" />
+    <uses-permission android:name="android.permission.KILL_BACKGROUND_PROCESSES" />
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+    <uses-permission android:name="android.permission.GET_ACCOUNTS" />
+    <uses-permission android:name="android.permission.USE_CREDENTIALS" />
+    <uses-permission android:name="android.permission.MANAGE_ACCOUNTS" />
+
     <application
         android:name="ustc.ssqstone.xueba.XueBaYH"
         android:allowBackup="true"
@@ -24,9 +32,9 @@
         android:label="@string/app_name"
         android:theme="@style/AppTheme" >
         <activity
-            android:launchMode="singleTask"
             android:name="ustc.ssqstone.xueba.MainActivity"
             android:label="@string/app_name"
+            android:launchMode="singleTask"
             android:screenOrientation="portrait" >
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -34,36 +42,38 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        
         <activity
+            android:name="com.renn.rennsdk.oauth.OAuthActivity"
+            android:configChanges="orientation|navigation|keyboardHidden" />
+        <activity
+            android:name="ustc.ssqstone.xueba.RestrictedModeActivity"
             android:launchMode="singleTask"
-            android:screenOrientation="portrait"
-            android:name="ustc.ssqstone.xueba.RestrictedModeActivity" >
-            <intent-filter>  
-                <action android:name="ustc.ssqstone.xueba.RestrictedModeActivity"/>
-                <category android:name="android.intent.category.DEFAULT"/> 
+            android:screenOrientation="portrait" >
+            <intent-filter>
+                <action android:name="ustc.ssqstone.xueba.RestrictedModeActivity" />
+
+                <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
         </activity>
-         
-        <service 
-            android:name="ustc.ssqstone.xueba.MonitorService" >
+
+        <service android:name="ustc.ssqstone.xueba.MonitorService" >
             <intent-filter>
-		        <action android:name="ustc.ssqstone.xueba.MonitorService"/>
-		    </intent-filter>
+                <action android:name="ustc.ssqstone.xueba.MonitorService" />
+            </intent-filter>
         </service>
-        
-        <receiver android:name="ustc.ssqstone.xueba.BootReceiver">
-            <intent-filter>     
-		        <action android:name="android.intent.action.BOOT_COMPLETED" />
-		        <category android:name="android.intent.category.LAUNCHER" />     
-		    </intent-filter>     
+
+        <receiver android:name="ustc.ssqstone.xueba.BootReceiver" >
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
         </receiver>
-        
-        <receiver
-            android:name="ustc.ssqstone.xueba.AdminReceiver">
+        <receiver android:name="ustc.ssqstone.xueba.AdminReceiver" >
             <meta-data
                 android:name="android.app.device_admin"
                 android:resource="@xml/lock_screen" />
+
             <intent-filter>
                 <action android:name="android.app.action.DEVICE_ADMIN_ENABLED" />
             </intent-filter>
