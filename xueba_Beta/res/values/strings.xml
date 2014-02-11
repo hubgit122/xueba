@@ -1,0 +1,20 @@
+<resources>
+    <string name="app_name">学霸银魂</string>
+    <string name="confirm">就这么愉快地决定了~</string>
+    <string name="setting">设置</string>
+    <string name="noon_nap">午睡时间</string>
+    <string name="force_noon_sleep">强制午睡</string>
+    <string name="force_sleep">今天早睡!</string>
+    <string name="force_study">开始学习!</string>
+    <string name="from">从</string>
+    <string name="to">到</string>
+    <string name="okay">好的</string>
+    <string name="edit_sms">编辑短信内容</string>
+    <string name="to_whom">监督人手机:</string>
+    <string name="how_to_explain">这个...怎么跟你解释...</string>
+    <string name="dial">电话</string>
+    <string name="sms">短信</string>
+    <string name="to_main">回主菜单</string>
+    <string name="view_log">查看学习履历</string>
+	
+</resources>
