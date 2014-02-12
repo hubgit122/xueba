@@ -143,9 +143,10 @@ public class MainActivity extends Activity
 	 */
 	protected void resumeData()
 	{
-		SharedPreferences values = getSharedPreferences(XueBaYH.VALUES, MODE_PRIVATE);
+		XueBaYH.getApp().checkParity();
+		XueBaYH.getApp().checkStatus();
 		
-		Editor valuesEditor = values.edit();
+		SharedPreferences values = getSharedPreferences(XueBaYH.VALUES, MODE_PRIVATE);
 		
 		noonCB.setChecked(values.getBoolean(XueBaYH.NOON_EN, false));
 		nightCB.setChecked(values.getBoolean(XueBaYH.NIGHT_EN, false));
@@ -160,39 +161,9 @@ public class MainActivity extends Activity
 		String defaultPhoneString = values.getString(XueBaYH.PHONE_NUM, XueBaYH.myself ? XueBaYH.我的监督人s : XueBaYH.我s);
 		phoneTV.setText(values.getString(XueBaYH.PHONE_NUM, defaultPhoneString));
 		
-		if (XueBaYH.getApp().getParity() != values.getLong(XueBaYH.PARITY, -13))
-		{
-			XueBaYH.getApp().showToast("上次保存的时候是正常的数据, 现在却坏了. 已经给设定的手机发送短信, 以儆效尤. ");
-			punish();
-		}
-		
-		valuesEditor.commit();
-		valuesEditor.putLong(XueBaYH.PARITY, XueBaYH.getApp().getParity());
-		valuesEditor.commit();
-		
 		initingData = false;
 	}
-	
-	private void punish()
-	{
-		if (android.provider.Settings.System.getInt(this.getContentResolver(), android.provider.Settings.System.AIRPLANE_MODE_ON, 1) == 1)
-		{
-			XueBaYH.getApp().showToast("开启了飞行模式，既然不能发送短信，那么就变砖一小时，看你老实不老实。");
-			studyCB.setChecked(true);
-			Calendar calendar = Calendar.getInstance();
-			studyBegin = calendar.getTimeInMillis();
-			calendar.add(Calendar.HOUR_OF_DAY, 1);
-			studyEnd = calendar.getTimeInMillis();
-			saveData();
-			XueBaYH.getApp().restartMonitorService();
-			XueBaYH.getApp().showToast("变砖成功！\n颤抖吧，凡人！");
-		}
-		else
-		{
-			XueBaYH.getApp().sendSMS("我已经设定您为学习监督短信的接收人。若您不认识我，请与我联系并要求我更改设置。\n如果您多次收到本短信，说明我曾经更改程序数据。这是不好的。", phoneTV.getText().toString(), null);
-		}
-	}
-	
+
 	/**
 	 * 将内存中的数据所代表的时间修正; 修正算法都是一样的: ; 如果被修正时间段结束时间大于开始时间 (则可以位于同一天), 则修正为未来最近的一天;
 	 * 否则跨越了两天. 如果当前时间点位于时间段内, 修正为最近的两天, 否则修正为今明两天.

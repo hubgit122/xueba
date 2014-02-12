@@ -68,7 +68,7 @@ public class RestrictedModeActivity extends Activity
 			if (interrupted%20==0)
 			{
 				String smsString = "我开始了"+getIntent().getStringExtra(XueBaYH.RESTRICTED_MODE) +"模式, 但是手贱, 一直在鼓捣, 肯定没安好心, 请批评我. ";
-				XueBaYH .getApp().sendSMS(smsString, getSharedPreferences(XueBaYH.VALUES, MODE_PRIVATE).getString(XueBaYH.PHONE_NUM,	 XueBaYH.myself?XueBaYH.我的监督人s:XueBaYH.我s), null);
+				XueBaYH .getApp().sendSMS(smsString, getSharedPreferences(XueBaYH.VALUES, MODE_PRIVATE).getString(XueBaYH.PHONE_NUM,	 XueBaYH.myself?XueBaYH.我的监督人s:XueBaYH.我s), getIntent().getStringExtra(XueBaYH.RESTRICTED_MODE));
 			}
 			else
 			{
