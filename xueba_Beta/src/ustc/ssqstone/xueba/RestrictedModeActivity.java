@@ -60,15 +60,15 @@ public class RestrictedModeActivity extends Activity
 		{
 			if (interrupted>=5)
 			{
-				XueBaYH.getApp().showToast("别再开屏关屏了或者乱动了, 触碰我的底线是会强制发短信的. \n在本次"+getIntent().getStringExtra("ustc.ssqstone.xueba.status")+"结束之前你还有"+(40-interrupted)+"次退出机会. ");
+				XueBaYH.getApp().showToast("别再开屏关屏了或者乱动了, 触碰我的底线是会强制发短信的. \n在本次"+getIntent().getStringExtra(XueBaYH.RESTRICTED_MODE)+"结束之前你还有"+(40-interrupted)+"次退出机会. ");
 			}
 		}
 		else
 		{
 			if (interrupted%20==0)
 			{
-				String smsString = "我开始了"+getIntent().getStringExtra("ustc.ssqstone.xueba.status") +"模式, 但是手贱, 一直在鼓捣, 肯定没安好心, 请批评我. ";
-				XueBaYH .getApp().sendSMS(smsString, getSharedPreferences(XueBaYH.VALUES, MODE_PRIVATE).getString(XueBaYH.PHONE_NUM,	 XueBaYH.myself?XueBaYH.我的监督人s:XueBaYH.我s));
+				String smsString = "我开始了"+getIntent().getStringExtra(XueBaYH.RESTRICTED_MODE) +"模式, 但是手贱, 一直在鼓捣, 肯定没安好心, 请批评我. ";
+				XueBaYH .getApp().sendSMS(smsString, getSharedPreferences(XueBaYH.VALUES, MODE_PRIVATE).getString(XueBaYH.PHONE_NUM,	 XueBaYH.myself?XueBaYH.我的监督人s:XueBaYH.我s), null);
 			}
 			else
 			{
@@ -101,7 +101,7 @@ public class RestrictedModeActivity extends Activity
 			SharedPreferences sharedPreferences = getSharedPreferences(XueBaYH.VALUES,MODE_PRIVATE);
 			phoneNum=sharedPreferences.getString(XueBaYH.PHONE_NUM, XueBaYH.myself?XueBaYH.我的监督人s:XueBaYH.我s);
 			
-			if ((RestrictedModeActivity.this.getIntent().getStringExtra("ustc.ssqstone.xueba.status").equals(Status.sleeping_night.getLocalString()))||(RestrictedModeActivity.this.getIntent().getStringExtra("ustc.ssqstone.xueba.status").equals(Status.sleeping_noon.getLocalString()))) 
+			if ((RestrictedModeActivity.this.getIntent().getStringExtra(XueBaYH.RESTRICTED_MODE).equals(Status.sleeping_night.getLocalString()))||(RestrictedModeActivity.this.getIntent().getStringExtra(XueBaYH.RESTRICTED_MODE).equals(Status.sleeping_noon.getLocalString()))) 
 			{
 				Calendar startCalendar=Calendar.getInstance();
 				long start=RestrictedModeActivity.this.getIntent().getLongExtra("ustc.ssqstone.xueba.start", 0);
@@ -131,47 +131,9 @@ public class RestrictedModeActivity extends Activity
 				public void onClick(DialogInterface dialog, int which)
 				{
 					smsString+=editText.getText().toString();
+					XueBaYH.getApp().sendSMS(smsString, phoneNum, getIntent().getStringExtra(XueBaYH.RESTRICTED_MODE));
 					
-	//				handler.sendEmptyMessage(REGISTER);
-	//
-	//				smsSendReceiver = new SMSSentReceiver();
-	//				IntentFilter intentFilter = new IntentFilter("SMS_SEND_ACTION");
-	//				registerReceiver(smsSendReceiver, intentFilter);
-	//				
-	//				smsDeliveredReceiver = new SMSSentReceiver();
-	//				intentFilter = new IntentFilter("SMS_DELIVERED_ACTION");
-	//				registerReceiver(smsDeliveredReceiver, intentFilter);
-					
-					// TODO 注意, 这里短信发送可以由receiver监控, 更精确. 
-					if (!XueBaYH.getApp().sendSMS(smsString, phoneNum))
-					{
-						XueBaYH.getApp().showToast("这点小花招怎么能骗得了我？把飞行模式关掉再发短信！");
-					}
-					else 
-					{
-						SharedPreferences sharedPreferences = getSharedPreferences(XueBaYH.VALUES,MODE_PRIVATE);
-						Editor editor=sharedPreferences.edit();
-						if (getIntent().getStringExtra("ustc.ssqstone.xueba.status").equals(Status.sleeping_night.getLocalString()))
-						{
-							editor.putBoolean(XueBaYH.NIGHT_EN, false);
-						}
-						else if (getIntent().getStringExtra("ustc.ssqstone.xueba.status").equals(Status.sleeping_noon.getLocalString())) 
-						{
-							editor.putBoolean(XueBaYH.NOON_EN, false);
-						}
-						else
-						{
-							editor.putBoolean(XueBaYH.STUDY_EN, false);
-						}
-						editor.commit();
-						editor.putLong(XueBaYH.PARITY, XueBaYH.getApp().getParity());
-						editor.commit();
-						
-	//					Intent intent=new Intent(RestrictedModeActivity.this,MainActivity.class);
-	//					intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-	//					startActivity(intent);
-						RestrictedModeActivity.this.finish();
-					}
+					XueBaYH.getApp().showToast("短信发送成功后自动退出. ");
 				}
 			})
 		    .setNegativeButton("取消", new DialogInterface.OnClickListener()
@@ -221,53 +183,50 @@ public class RestrictedModeActivity extends Activity
 			getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN, WindowManager.LayoutParams.FLAG_FULLSCREEN); //设置全屏 
 		}
 		
-		if((this.getIntent().getStringExtra("ustc.ssqstone.xueba.status").equals(Status.sleeping_night.getLocalString()))||(this.getIntent().getStringExtra("ustc.ssqstone.xueba.status").equals(Status.sleeping_noon.getLocalString())))
+		if (this.getIntent().hasExtra(XueBaYH.RESTRICTED_MODE))
 		{
-			setContentView(R.layout.restricted_mode_sleeping);
-			denyButton = (Button) super.findViewById(R.id.deny_sleeping_b);
-			denyButton.setOnClickListener(onDenyClickListener);
-			
-			toMainButton = (Button) super.findViewById(R.id.sleep_to_main_b);
-			toMainButton.setOnClickListener(onToMainListener);
-		}
-		else
-		{
-			setContentView(R.layout.restricted_mode_studying);
-			denyButton = (Button) super.findViewById(R.id.deny_studying_b);
-			denyButton.setOnClickListener(onDenyClickListener);
-
-			toMainButton = (Button) super.findViewById(R.id.study_to_main_b);
-			toMainButton.setOnClickListener(onToMainListener);
-			
-			dialButton = (Button) super.findViewById(R.id.dial_b);
-			dialButton.setOnClickListener(new OnClickListener()
+			if ((this.getIntent().getStringExtra(XueBaYH.RESTRICTED_MODE).equals(Status.sleeping_night.getLocalString())) || (this.getIntent().getStringExtra(XueBaYH.RESTRICTED_MODE).equals(Status.sleeping_noon.getLocalString())))
 			{
-				@Override
-				public void onClick(View v)
-				{
-					Uri uri= Uri.parse("tel:");
-					Intent intent = new Intent(Intent.ACTION_DIAL,uri);
-					startActivity(intent);
-				}
-			});
-			
-			smsButton = (Button) super.findViewById(R.id.sms_b);
-			smsButton.setOnClickListener(new OnClickListener()
+				setContentView(R.layout.restricted_mode_sleeping);
+				denyButton = (Button) super.findViewById(R.id.deny_sleeping_b);
+				denyButton.setOnClickListener(onDenyClickListener);
+				
+				toMainButton = (Button) super.findViewById(R.id.sleep_to_main_b);
+				toMainButton.setOnClickListener(onToMainListener);
+			}
+			else
 			{
-				@Override
-				public void onClick(View v)
+				setContentView(R.layout.restricted_mode_studying);
+				denyButton = (Button) super.findViewById(R.id.deny_studying_b);
+				denyButton.setOnClickListener(onDenyClickListener);
+				
+				toMainButton = (Button) super.findViewById(R.id.study_to_main_b);
+				toMainButton.setOnClickListener(onToMainListener);
+				
+				dialButton = (Button) super.findViewById(R.id.dial_b);
+				dialButton.setOnClickListener(new OnClickListener()
 				{
-					//TODO
-//					Intent intent = new Intent(Intent.ACTION_VIEW);
-//					intent.putExtra("", "The SMS text");
-//					intent.setType("vnd.android-dir/mms-sms");
-//					startActivity(intent);
-					
-					Intent intent = new Intent(Intent.ACTION_MAIN);
-					intent.setType("vnd.android-dir/mms-sms");
-					startActivity(intent);
-				}
-			});
+					@Override
+					public void onClick(View v)
+					{
+						Uri uri = Uri.parse("tel:");
+						Intent intent = new Intent(Intent.ACTION_DIAL, uri);
+						startActivity(intent);
+					}
+				});
+				
+				smsButton = (Button) super.findViewById(R.id.sms_b);
+				smsButton.setOnClickListener(new OnClickListener()
+				{
+					@Override
+					public void onClick(View v)
+					{
+						Intent intent = new Intent(Intent.ACTION_MAIN);
+						intent.setType("vnd.android-dir/mms-sms");
+						startActivity(intent);
+					}
+				});
+			}
 		}
 	}
 	
@@ -275,8 +234,29 @@ public class RestrictedModeActivity extends Activity
 	protected void onNewIntent(Intent intent)
 	{
 		super.onNewIntent(intent);
-		if (intent.getBooleanExtra("ustc.ssqstone.xueba.destroy", false))
+		
+		if (intent.hasExtra(XueBaYH.DESTROY_RESTRICTION))
 		{
+			if(getIntent().hasExtra(XueBaYH.RESTRICTED_MODE))
+			{
+				SharedPreferences sharedPreferences = getSharedPreferences(XueBaYH.VALUES,MODE_PRIVATE);
+				Editor editor=sharedPreferences.edit();
+				if (getIntent().getStringExtra(XueBaYH.RESTRICTED_MODE).equals(Status.sleeping_night.getLocalString()))
+				{
+					editor.putBoolean(XueBaYH.NIGHT_EN, false);
+				}
+				else if (getIntent().getStringExtra(XueBaYH.RESTRICTED_MODE).equals(Status.sleeping_noon.getLocalString())) 
+				{
+					editor.putBoolean(XueBaYH.NOON_EN, false);
+				}
+				else
+				{
+					editor.putBoolean(XueBaYH.STUDY_EN, false);
+				}
+				editor.commit();
+				editor.putLong(XueBaYH.PARITY, XueBaYH.getApp().getParity());
+				editor.commit();
+			}
 			finish();
 		}
 		else
@@ -312,86 +292,6 @@ public class RestrictedModeActivity extends Activity
 		return super.onKeyDown(keyCode, event); 
 	}
 
-	
-//	private class SMSSentReceiver extends BroadcastReceiver
-//	{
-//		@Override
-//		public void onReceive(Context context,Intent it)
-//		{
-//			switch (getResultCode())
-//			{
-//			case Activity.RESULT_OK:
-//				Toast.makeText(RestrictedModeActivity.this, "发送成功，你自由了。", Toast.LENGTH_LONG).show();
-//				
-//				SharedPreferences sharedPreferences = getSharedPreferences(XueBaYH.DENIED,MODE_PRIVATE);
-//				Editor editor=sharedPreferences.edit();
-//				if (getIntent().getStringExtra("ustc.ssqstone.xueba.status").equals(Status.sleeping_night.getLocalString()))
-//				{
-//					editor.putBoolean(XueBaYH.NIGHT_DENIED, true);
-//				}
-//				else if (getIntent().getStringExtra("ustc.ssqstone.xueba.status").equals(Status.sleeping_noon.getLocalString())) 
-//				{
-//					editor.putBoolean(XueBaYH.NOON_DENIED, true);
-//				}
-//				else
-//				{
-//					editor.putBoolean(XueBaYH.STUDY_DENIED, true);
-//				}
-//				editor.putLong(XueBaYH.KEY, MainActivity.myself?张曦文:我);
-//				editor.commit();
-//				editor=sharedPreferences.edit();
-//				editor.putLong(XueBaYH.PARITY, getParity());
-//				editor.commit();
-//				
-//				Intent intent=new Intent(RestrictedModeActivity.this,MainActivity.class);
-//				intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-//				startActivity(intent);
-//				handler.sendEmptyMessage(UNREGISTER);
-//				break;
-//			case SmsManager.RESULT_ERROR_GENERIC_FAILURE:
-//				Toast.makeText(RestrictedModeActivity.this, "短信没法出去，不能让你获得自由。", Toast.LENGTH_LONG).show();
-//				break;
-//			default:
-//				break;
-//			}
-//		}
-//	}
-//	
-//	private BroadcastReceiver smsSendReceiver,smsDeliveredReceiver;
-//	Handler handler=new Handler()
-//	{
-//		@Override
-//		public void handleMessage(Message msg)
-//		{
-//			switch (msg.what)
-//			{
-//				case REGISTER:
-//					smsSendReceiver = new SMSSentReceiver();
-//					IntentFilter intentFilter = new IntentFilter("SMS_SEND_ACTION");
-//					registerReceiver(smsSendReceiver, intentFilter);
-//					
-//					smsDeliveredReceiver = new SMSSentReceiver();
-//					intentFilter = new IntentFilter("SMS_DELIVERED_ACTION");
-//					registerReceiver(smsDeliveredReceiver, intentFilter);
-//					
-//					break;
-//				case UNREGISTER:
-//					if (smsDeliveredReceiver!=null)
-//					{
-//						unregisterReceiver(smsDeliveredReceiver);
-//					}
-//					if (smsSendReceiver!=null)
-//					{
-//						unregisterReceiver(smsSendReceiver);
-//					}
-//					break;
-//				default:
-//					break;
-//			}
-//			super.handleMessage(msg);
-//		}
-//	};
-	
 /*	@Override
     public void onAttachedToWindow()
 	{

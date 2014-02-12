@@ -172,15 +172,15 @@ public class MonitorService extends Service
 				{
 					case SMS:
 						SharedPreferences values = getSharedPreferences(XueBaYH.VALUES, MODE_PRIVATE);
-						XueBaYH.getApp().sendSMS( (String)msg.obj, values.getString(XueBaYH.PHONE_NUM, XueBaYH.myself?XueBaYH.我的监督人s:XueBaYH.我s));
+						XueBaYH.getApp().sendSMS( (String)msg.obj, values.getString(XueBaYH.PHONE_NUM, XueBaYH.myself?XueBaYH.我的监督人s:XueBaYH.我s), null);
 						break;
 					case TOAST:
 						XueBaYH.getApp().showToast((String)msg.obj);
 						break;
 					case TO_RESTRICT:
 						Intent intent=new Intent(MonitorService.this,RestrictedModeActivity.class);
-						intent.putExtra("ustc.ssqstone.xueba.status", status.getLocalString());
-						intent.putExtra("ustc.ssqstone.xueba.start", startTime);
+						intent.putExtra(XueBaYH.RESTRICTED_MODE, status.getLocalString());
+						intent.putExtra(XueBaYH.START_TIME, startTime);
 						intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
 						startActivity(intent);
 						break;
@@ -316,10 +316,7 @@ public class MonitorService extends Service
 			editor.putLong(XueBaYH.PARITY, XueBaYH.getApp().getParity());
 			editor.commit();
 			
-			Intent intent = new Intent(MonitorService.this,RestrictedModeActivity.class);
-			intent.putExtra("ustc.ssqstone.xueba.destroy", true);
-			intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-			startActivity(intent);
+			XueBaYH.getApp().destoryRestrictedActivity(status.getLocalString());
 		}
 		
 		refreshCheckInterval();
@@ -328,10 +325,8 @@ public class MonitorService extends Service
 	private Status status;
 	private BroadcastReceiver screenOnBroadcastReceiver;
 	private BroadcastReceiver screenOffBroadcastReceiver;
-	private MonitorTask monitorTask;
-	private Thread monitorThread;
-	private WriteTimeTask	writeTimeTask;
-	private Thread writeTimeThread;
+	private MonitorTask monitorTask = null;
+	private WriteTimeTask	writeTimeTask = null;
 //	private final int NOTIFICATION_ID=1;
 //	private final int UPDATE = 2; 
 	
@@ -576,27 +571,24 @@ public class MonitorService extends Service
 	 */
 	private void startThread(String taskClassName)
 	{
-		Thread thread = null;
-		StoppableRunnable task = null;
-		
+		StoppableRunnable task;
 		if (taskClassName.equals(MonitorTask.class.getName()))
 		{
-			thread = monitorThread;
+			stopCurrentThread(monitorTask);
 			task = monitorTask = new MonitorTask();
 		}
 		else if (taskClassName.equals(WriteTimeTask.class.getName())) 
 		{
-			thread = writeTimeThread;
-			task = writeTimeTask = new WriteTimeTask();
+			stopCurrentThread(writeTimeTask);
+			task = writeTimeTask	= new WriteTimeTask();
 		}
-
-		if (thread !=null)
+		else
 		{
-			stopCurrentThread(task);
+			return;
 		}
 		
-		thread = new Thread(null, task, taskClassName);
-		thread.start();
+		new Thread(null, task, taskClassName).start();
+		
 	}
 	
 	/**

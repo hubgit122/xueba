@@ -6,19 +6,22 @@ import java.util.Iterator;
 import java.util.List;
 
 import com.renn.rennsdk.RennClient;
+
+import android.app.Activity;
 import android.app.ActivityManager;
 import android.app.ActivityManager.RunningAppProcessInfo;
 import android.app.Application;
+import android.app.PendingIntent;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.content.SharedPreferences.Editor;
+import android.os.Bundle;
 import android.os.Vibrator;
 import android.telephony.SmsManager;
 import android.telephony.TelephonyManager;
-import android.util.Log;
 import android.widget.Toast;
 
 /**
@@ -28,18 +31,25 @@ import android.widget.Toast;
  */
 public class XueBaYH extends Application
 {
+	protected static final String	SMS_STRING	= "ustc.ssqstone.xueba.SMS_String";
+	protected static final String	SMS_NO	= "ustc.ssqstone.xueba.SMS_No";
+	protected static final String	SMS_PHONE_NO	= "ustc.ssqstone.xueba.SMS_PhoneNo";
+	protected static final String	PENDING_SMSs	= "pending_SMSs";
 	protected static final String	LAST_WRITE	= "last_write";
 	protected static final String	SHUTDOWN_TIME	= "shutdowntime";
+	protected static final String	RESTRICTED_MODE	= "ustc.ssqstone.xueba.restricted_mode";
+	protected static final String	START_TIME	= "ustc.ssqstone.xueba.start";
 	protected static final boolean myself = true;
-	protected static final boolean debug = false;
+	protected static final boolean debug = true;
+	protected static final boolean debugSMS = true;
 
 	protected static final String	STATE	= "state";
 	protected static final String	ACK_INTERRUTION	= "ack_interrution";
 	protected static final String	INTERRUPTED_TIMES	= "interrupted times";
 	protected static final String	HOW_MANY_INTERRUPTED_TIMES	= "how_many_interrupted_times";
-	protected static final long		我	 = 15556958998l;
+	protected static final long	我	 = 15556958998l;
 	protected static final String	我s	= Long.valueOf(我).toString();
-	protected static final long		我的监督人	= 18297958221l;
+	protected static final long	我的监督人	= debug?10010:18297958221l;
 	protected static final String	我的监督人s	= Long.valueOf(我的监督人).toString();
 	protected static final String	INFORM_NOT_SAVED	= "本次输入未保存";
 	protected static final String	INFORM_SAVING_ERROR	= "本次输入有错误而不能保存, 再次按下返回键退出而不保存. ";
@@ -69,6 +79,10 @@ public class XueBaYH extends Application
 	protected static final String	NIGHT_EN	= "night_en";
 	protected static final String	NOON_EN	= "noon_en";
 	private static final String	SMS_LOG	= "sms_log";
+	protected static final String	DESTROY_RESTRICTION	= "ustc.ssqstone.xueba.destroy";
+	protected final static String	SMS_SENT_S = "ustc.ssqstone.xueba.SMS_Sent";
+	protected static final String	PENDING_RESQUESTS	= "PendingRequests";
+	
 	protected static XueBaYH ApplicationContext;
 //	protected static boolean confirmPhone;
 
@@ -78,8 +92,8 @@ public class XueBaYH extends Application
 	
 	private BroadcastReceiver shutdownBroadcastReceiver;
 	
-//	private Toast toast=null;
 	protected RennClient rennClient;
+	private SMS_SentReceiver smsSentReceiver;
 	
 	public void onCreate()
 	{
@@ -99,13 +113,27 @@ public class XueBaYH extends Application
 		intentFilter = new IntentFilter();
 		intentFilter.addAction(Intent.ACTION_SHUTDOWN);
 		registerReceiver(shutdownBroadcastReceiver, intentFilter);
+
+		/* 自定义IntentFilter为SENT_SMS_ACTIOIN Receiver */  
+		intentFilter = new IntentFilter(SMS_SENT_S);
+		smsSentReceiver = new SMS_SentReceiver();
+		registerReceiver(smsSentReceiver, intentFilter); 
+		
 //		confirmPhone= false;
 	}
 	
 	@Override
 	public void onTerminate()
 	{
-		unregisterReceiver(shutdownBroadcastReceiver);
+		if (shutdownBroadcastReceiver!=null)
+		{
+			unregisterReceiver(shutdownBroadcastReceiver);
+		}
+		
+	    if (smsSentReceiver != null)
+	    {  
+	        unregisterReceiver(smsSentReceiver);  
+	    }
 		super.onTerminate();
 	}
 
@@ -114,38 +142,87 @@ public class XueBaYH extends Application
 		return ApplicationContext;
 	}
 
-	protected void startReportService()
-	{
-		startService(new Intent("ustc.ssqstone.xueba.ReportService"));
-	}
-	
 	protected void restartMonitorService()
 	{
 //		stopService(new Intent("ustc.ssqstone.xueba.MonitorService"));		//在Service退出的时候加入短信通知, 所以不能在此关闭. 其实关闭Service没啥意思. 
 		startService(new Intent("ustc.ssqstone.xueba.MonitorService"));
 	}
 
-	protected boolean sendSMS(String smsString,String phoneText)
+	public class SMS_SentReceiver extends BroadcastReceiver
 	{
-		boolean result = setOnLine();
-		if (!XueBaYH.debug)
+		@Override
+		public void onReceive(Context context, Intent intent)
 		{
+			try
+			{
+				Editor editor;
+				Bundle bundle = intent.getExtras();
+				switch (getResultCode())
+				{
+					case Activity.RESULT_OK:
+						if (bundle.containsKey(DESTROY_RESTRICTION))
+						{
+							destoryRestrictedActivity(bundle.getString(DESTROY_RESTRICTION));
+						}
+						XueBaYH.getApp().showToast("已向"+bundle.getString(SMS_PHONE_NO)+"发送短信:\n"+bundle.getString(SMS_STRING));
+						editor = getSharedPreferences(XueBaYH.SMS_LOG, MODE_PRIVATE).edit();
+						editor.putString(getSimpleTime(Calendar.getInstance().getTimeInMillis()),"to: "+ bundle.getString(SMS_PHONE_NO)+ "; content: " +bundle.getString(SMS_STRING) + "; No."+ bundle.getInt(SMS_NO));
+						editor.commit();
+						
+						editor =getSharedPreferences(VALUES, MODE_PRIVATE).edit();
+						break;
+					case SmsManager.RESULT_ERROR_GENERIC_FAILURE:
+					case SmsManager.RESULT_ERROR_RADIO_OFF:
+					case SmsManager.RESULT_ERROR_NULL_PDU:
+					default:
+						/* 发送短信失败 */
+						XueBaYH.getApp().showToast("向"+bundle.getString(SMS_PHONE_NO)+"发送短信:\n"+bundle.getString(SMS_STRING)+"失败, 已经记档, 在有网的时候自动发送. ");
+						SharedPreferences sharedPreferences = getSharedPreferences(XueBaYH.VALUES, MODE_PRIVATE);
+						editor = sharedPreferences.edit();
+						String pendingSMS = sharedPreferences.getString(PENDING_SMSs, "");
+						pendingSMS += ";;to: "+ bundle.getString(SMS_PHONE_NO)+ "; content: " +bundle.getString(SMS_STRING);
+						editor.putString(PENDING_SMSs, pendingSMS);
+						editor.commit();
+						break;
+				}
+			}
+			catch (Exception e)
+			{
+				e.getStackTrace();
+			}
+		}
+	}
+
+	protected void sendSMS(String smsString,String phoneText, String mode)
+	{
+		if (!debug||debugSMS)
+		{
+//			setOnLine();
 			SmsManager sms = SmsManager.getDefault();
 			List<String> texts = sms.divideMessage(smsString);
+
+			int i = 0;
 			for (String text : texts)
 			{
-				sms.sendTextMessage(phoneText, null, text, null, null);       
+				Intent itSend = new Intent(SMS_SENT_S);
+				Bundle bundle = new Bundle();
+				bundle.putString(SMS_PHONE_NO, phoneText);
+				bundle.putInt(SMS_NO, ++i);
+				bundle.putString(SMS_STRING, text);
+				if (i==1&&(mode!=null)&&(!mode.isEmpty()))
+				{
+					bundle.putString(DESTROY_RESTRICTION, mode);
+				}
+				itSend.putExtras(bundle);
+				PendingIntent mSendPI = PendingIntent.getBroadcast(getApplicationContext(), (int) System.currentTimeMillis(), itSend, PendingIntent.FLAG_UPDATE_CURRENT);
+				
+				sms.sendTextMessage(phoneText, null, text, mSendPI, null);
 			}
-			XueBaYH.getApp().showToast("已向"+phoneText+"发送"+texts.size()+"条短信:\n"+smsString);
-			Editor editor = getSharedPreferences(XueBaYH.SMS_LOG, MODE_PRIVATE).edit();
-			editor.putString(getSimpleTime(Calendar.getInstance().getTimeInMillis()),"to: "+ phoneText+ "; content: " +smsString);
-			editor.commit();
 		}
-		else 
+		else
 		{
 			showToast("此处向"+phoneText+"发送短信:\n"+smsString);
 		}
-		return result;
 	}
 	
 	protected static String getSimpleTime(long time)
@@ -253,29 +330,29 @@ public class XueBaYH extends Application
 //		}
 //	}
 
-	private boolean setOnLine()
-	{
-		boolean airplaneModeOn=XueBaYH.getApp().isInAirplaneMode();
-		if (airplaneModeOn)
-		{
-			if(!android.provider.Settings.System.putString(this.getContentResolver(), android.provider.Settings.System.AIRPLANE_MODE_ON , "0"))
-			{
-				XueBaYH.getApp().showToast("自动关闭飞行模式失败，请手动关闭飞行模式。");
-				return false;
-			}
-			else 
-			{
-				Intent intent = new Intent(Intent.ACTION_AIRPLANE_MODE_CHANGED);
-				intent.putExtra(STATE, !airplaneModeOn);
-				sendBroadcast(intent);
-				return true;
-			}
-		}
-		else 
-		{
-			return true;
-		}
-	}
+//	private boolean setOnLine()
+//	{
+//		boolean airplaneModeOn=XueBaYH.getApp().isInAirplaneMode();
+//		if (airplaneModeOn)
+//		{
+//			if(!android.provider.Settings.System.putString(this.getContentResolver(), android.provider.Settings.System.AIRPLANE_MODE_ON , "0"))
+//			{
+//				XueBaYH.getApp().showToast("自动关闭飞行模式失败，请手动关闭飞行模式。");
+//				return false;
+//			}
+//			else 
+//			{
+//				Intent intent = new Intent(Intent.ACTION_AIRPLANE_MODE_CHANGED);
+//				intent.putExtra(STATE, !airplaneModeOn);
+//				sendBroadcast(intent);
+//				return true;
+//			}
+//		}
+//		else 
+//		{
+//			return true;
+//		}
+//	}
 
 	protected String getPhoneNum()
 	{
@@ -336,5 +413,14 @@ public class XueBaYH extends Application
 		editor.commit();
 		editor.putLong(PARITY, getParity());
 		editor.commit();
+	}
+	
+	protected void destoryRestrictedActivity(String mode)
+	{
+		Intent intent = new Intent(XueBaYH.this, RestrictedModeActivity.class);
+		intent.putExtra(DESTROY_RESTRICTION, true);
+		intent.putExtra(RESTRICTED_MODE, mode);
+		intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+		startActivity(intent);
 	}
 }
