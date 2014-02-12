@@ -13,6 +13,7 @@ public class BootReceiver extends BroadcastReceiver
 {
 	public void onReceive(Context paramContext, Intent paramIntent)
 	{
+		XueBaYH.getApp().checkStatus();
 		if (paramIntent.getAction().equals("android.intent.action.BOOT_COMPLETED"))
 		{
 			XueBaYH.getApp().restartMonitorService();

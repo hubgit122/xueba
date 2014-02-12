@@ -245,9 +245,8 @@ public class MonitorService extends Service
 	private void loadStatus()
 	{
 		XueBaYH.getApp().checkParity();
-		XueBaYH.getApp().checkStatus();
 		
-		SharedPreferences sharedPreferences = getSharedPreferences("values", MODE_PRIVATE);
+		SharedPreferences sharedPreferences = getSharedPreferences(XueBaYH.VALUES, MODE_PRIVATE);
 		
 		noonEn = sharedPreferences.getBoolean("noon_en", false);
 		nightEn = sharedPreferences.getBoolean("night_en", false);
@@ -410,7 +409,11 @@ public class MonitorService extends Service
 			{
 				Calendar calendar = Calendar.getInstance();
 				calendar.setFirstDayOfWeek(Calendar.SUNDAY);
-				calendar.set(Calendar.DAY_OF_WEEK, Calendar.SUNDAY); // 日期变到最近的一个星期天.
+				calendar.set(Calendar.DAY_OF_WEEK, Calendar.SUNDAY); // 日期变到最近的一个星期天0点
+				calendar.set(Calendar.HOUR_OF_DAY, 0);
+				calendar.set(Calendar.MINUTE, 0);
+				calendar.set(Calendar.SECOND, 0);
+				calendar.set(Calendar.MILLISECOND, 0);
 				
 				SharedPreferences sharedPreferences = getSharedPreferences(XueBaYH.VALUES, MODE_PRIVATE);
 				Editor editor = sharedPreferences.edit();
@@ -423,6 +426,10 @@ public class MonitorService extends Service
 				for (int i = 0; i < strings.length; i++)
 				{
 					String string = strings[i];
+					if (string.length()<14)
+					{
+						continue;
+					}
 					if (Long.valueOf(string.substring(string.length() - 14, string.length() - 2)) < calendar.getTimeInMillis())
 					{
 						bufferString += string;
@@ -432,7 +439,7 @@ public class MonitorService extends Service
 						for (int j = i; j < strings.length; j++)
 						{
 							String string_ = strings[j];
-							pendingString += string;
+							pendingString += string_;
 						}
 						
 						break;

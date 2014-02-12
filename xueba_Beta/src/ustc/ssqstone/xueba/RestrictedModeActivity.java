@@ -47,7 +47,7 @@ public class RestrictedModeActivity extends Activity
 	private void acknowledgeInterrupted()
 	{
 		SharedPreferences sharedPreferences = getSharedPreferences(XueBaYH.HOW_MANY_INTERRUPTED_TIMES, MODE_PRIVATE);
-		long start=getIntent().getLongExtra("ustc.ssqstone.xueba.start", -1);
+		long start=getIntent().getLongExtra(XueBaYH.START_TIME, -1);
 		
 		String indexString = XueBaYH.getSimpleTime(start)+" - ";
 
@@ -104,7 +104,7 @@ public class RestrictedModeActivity extends Activity
 			if ((RestrictedModeActivity.this.getIntent().getStringExtra(XueBaYH.RESTRICTED_MODE).equals(Status.sleeping_night.getLocalString()))||(RestrictedModeActivity.this.getIntent().getStringExtra(XueBaYH.RESTRICTED_MODE).equals(Status.sleeping_noon.getLocalString()))) 
 			{
 				Calendar startCalendar=Calendar.getInstance();
-				long start=RestrictedModeActivity.this.getIntent().getLongExtra("ustc.ssqstone.xueba.start", 0);
+				long start=RestrictedModeActivity.this.getIntent().getLongExtra(XueBaYH.START_TIME, 0);
 				startCalendar.setTimeInMillis(start);
 				SimpleDateFormat hmFormat = new SimpleDateFormat("hh点mm分"); 
 				smsString="我到现在了还想不睡觉鼓捣手机, 原定"+hmFormat.format(startCalendar.getTime())+"睡觉的. ";
@@ -113,7 +113,7 @@ public class RestrictedModeActivity extends Activity
 			{
 				long now=Calendar.getInstance().getTimeInMillis();
 	//			Calendar calendar=Calendar.getInstance();
-				long start=RestrictedModeActivity.this.getIntent().getLongExtra("ustc.ssqstone.xueba.start", 0);
+				long start=RestrictedModeActivity.this.getIntent().getLongExtra(XueBaYH.START_TIME, 0);
 	//			calendar.setTimeInMillis(now-start);
 	//			SimpleDateFormat hmFormat = new SimpleDateFormat("hh小时mm分钟"); 
 	//			smsString="我于学习开始"+hmFormat.format(calendar.getTime())+"后放弃.";

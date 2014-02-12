@@ -144,7 +144,6 @@ public class MainActivity extends Activity
 	protected void resumeData()
 	{
 		XueBaYH.getApp().checkParity();
-		XueBaYH.getApp().checkStatus();
 		
 		SharedPreferences values = getSharedPreferences(XueBaYH.VALUES, MODE_PRIVATE);
 		
