@@ -63,28 +63,22 @@
             </intent-filter>
         </service>
         
-		<receiver android:name="ustc.ssqstone.xueba.ShutdownReceiver">    
-            <intent-filter>    
-                <action android:name="android.intent.action.ACTION_SHUTDOWN"/>    
-            </intent-filter>    
-        </receiver>  
-        
-        <receiver android:name="ustc.ssqstone.xueba.BootReceiver" >
+        <receiver android:name="ustc.ssqstone.xueba.BootReceiver">
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
-
-                <category android:name="android.intent.category.LAUNCHER" />
+                
             </intent-filter>
         </receiver>
-        <receiver android:name="ustc.ssqstone.xueba.AdminReceiver" >
-            <meta-data
-                android:name="android.app.device_admin"
-                android:resource="@xml/lock_screen" />
+        
+<!--         <receiver android:name="ustc.ssqstone.xueba.AdminReceiver" > -->
+<!--             <meta-data -->
+<!--                 android:name="android.app.device_admin" -->
+<!--                 android:resource="@xml/lock_screen" /> -->
 
-            <intent-filter>
-                <action android:name="android.app.action.DEVICE_ADMIN_ENABLED" />
-            </intent-filter>
-        </receiver>
+<!--             <intent-filter> -->
+<!--                 <action android:name="android.app.action.DEVICE_ADMIN_ENABLED" /> -->
+<!--             </intent-filter> -->
+<!--         </receiver> -->
     </application>
 
 </manifest>

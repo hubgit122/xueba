@@ -25,8 +25,9 @@ import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.content.SharedPreferences.Editor;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Message;
 import android.os.Vibrator;
-import android.provider.Settings;
 import android.telephony.SmsManager;
 import android.telephony.TelephonyManager;
 import android.util.Log;
@@ -48,8 +49,8 @@ public class XueBaYH extends Application
 	protected static final String	RESTRICTED_MODE				= "ustc.ssqstone.xueba.restricted_mode";
 	protected static final String	START_TIME					= "ustc.ssqstone.xueba.start_time";
 	protected static final boolean	myself						= true;
-	protected static final boolean	debug						= false;
-	protected static final boolean	debugSMS					= true;
+	protected static final boolean	debug						= true;
+	protected static final boolean	debugSMS					= false;
 	
 	protected static final String	STATE						= "state";
 	protected static final String	ACK_INTERRUTION				= "ack_interrution";
@@ -57,7 +58,7 @@ public class XueBaYH extends Application
 	protected static final String	HOW_MANY_INTERRUPTED_TIMES	= "how_many_interrupted_times";
 	protected static final long		我							= 15556958998l;
 	protected static final String	我s							= Long.valueOf(我).toString();
-	protected static final long		我的监督人						= debug ? 10010 : 18297958221l;
+	protected static final long		我的监督人						= debug &&debugSMS? 10010 : 18297958221l;
 	protected static final String	我的监督人s						= Long.valueOf(我的监督人).toString();
 	protected static final String	默认监督人						= Long.valueOf(myself ? 我的监督人 : 我).toString();
 	protected static final String	INFORM_NOT_SAVED			= "本次输入未保存";
@@ -99,6 +100,92 @@ public class XueBaYH extends Application
 	static final String				SECRET_KEY					= "094de55dc157411e8a5435c6a7c134c5";
 	protected static final String	PENGDING_LOGS				= "pending_log";
 	
+	protected Handler				handler						= new Handler()
+																{
+																	@Override
+																	public void handleMessage(Message msg)
+																	{
+																		switch (msg.what)
+																		{
+																			case SMS:
+																				SharedPreferences values = getSharedPreferences(XueBaYH.VALUES, MODE_PRIVATE);
+																				XueBaYH.getApp().sendSMS((String) msg.obj, values.getString(XueBaYH.PHONE_NUM, XueBaYH.myself ? XueBaYH.我的监督人s : XueBaYH.我s), null);
+																				break;
+																			case TOAST:
+																				Toast.makeText(getApp(), (String) msg.obj, Toast.LENGTH_LONG).show();
+																				break;
+																			case CHECK_PARITY:
+																				boolean result = ( XueBaYH.getApp().getParity() == getSharedPreferences(XueBaYH.VALUES, MODE_PRIVATE).getLong(XueBaYH.PARITY, -13));
+																				if (!result)
+																				{
+																					Editor editor = getSharedPreferences(VALUES, MODE_PRIVATE).edit();
+																					editor.putLong(PARITY, getParity());
+																					editor.commit();
+																					
+																					punish();
+																					showToast("有证据表明数据被破坏. 已经给设定的手机发送短信, 以儆效尤. ");
+																				}
+																				
+																				if (msg.obj!=null)
+																				{
+																					Editor editor = ((EditorWithParity)msg.obj).mEditor;
+																					editor.commit();
+																					editor.putLong(XueBaYH.PARITY, XueBaYH.getApp().getParity());
+																					editor.commit();
+																				}
+																				break;
+																			case CHECK_STATUS:
+																				SharedPreferences sharedPreferences = getSharedPreferences(VALUES, MODE_PRIVATE);
+																				EditorWithParity editor = new EditorWithParity(sharedPreferences);
+																				Calendar calendar = Calendar.getInstance();
+																				SimpleDateFormat simpleDateFormat = new SimpleDateFormat("MM月dd日HH时mm分");
+																				
+																				if (sharedPreferences.getLong(LAST_WRITE, 0) > sharedPreferences.getLong(SHUTDOWN_TIME, 0) + 1000 * 3)
+																				{
+																					// 强制退出过.
+																					String string = "我于" + simpleDateFormat.format(new Date(sharedPreferences.getLong(LAST_WRITE, 0))) + "强制退出了学霸银魂(一个监督不乱鼓捣手机的应用), 直到" + simpleDateFormat.format(calendar.getTime()) + "学霸银魂才得以重新启动. 这是非常不道德的行为, 我强烈谴责自己. \\timeStamp = " + sharedPreferences.getLong(LAST_WRITE, 0) + "\n";
+																					
+																					editor.putString(PENGDING_LOGS, sharedPreferences.getString(PENGDING_LOGS, "") + string);
+																					
+																					if (sharedPreferences.getLong(NIGHT_END, 0) <= calendar.getTimeInMillis())
+																					{
+																						string = "在没有监督的日子里, 我所定的" + "从" + simpleDateFormat.format(sharedPreferences.getLong(NIGHT_BEGIN, 0)) + "到" + simpleDateFormat.format(sharedPreferences.getLong(NIGHT_END, 0)) + "睡觉" + "的计划也没有得到正常的执行, 再口头批评一次! \\timeStamp = " + sharedPreferences.getLong(NIGHT_END, 0) + "\n";
+																						editor.putString(PENGDING_LOGS, sharedPreferences.getString(PENGDING_LOGS, "") + string);
+																					}
+																					if (sharedPreferences.getLong(NOON_END, 0) <= calendar.getTimeInMillis())
+																					{
+																						string = "在没有监督的日子里, 我所定的" + "从" + simpleDateFormat.format(sharedPreferences.getLong(NOON_BEGIN, 0)) + "到" + simpleDateFormat.format(sharedPreferences.getLong(NOON_END, 0)) + "睡午觉" + "的计划也没有得到正常的执行, 再口头批评一次! \\timeStamp = " + sharedPreferences.getLong(NOON_END, 0) + "\n";
+																						editor.putString(PENGDING_LOGS, sharedPreferences.getString(PENGDING_LOGS, "") + string);
+																					}
+																					if (sharedPreferences.getLong(STUDY_END, 0) <= calendar.getTimeInMillis())
+																					{
+																						string = "在没有监督的日子里, 我所定的" + "从" + simpleDateFormat.format(sharedPreferences.getLong(STUDY_BEGIN, 0)) + "到" + simpleDateFormat.format(sharedPreferences.getLong(STUDY_END, 0)) + "学习" + "的计划也没有得到正常的执行, 再口头批评一次! \\timeStamp = " + sharedPreferences.getLong(STUDY_END, 0) + "\n";
+																						editor.putString(PENGDING_LOGS, sharedPreferences.getString(PENGDING_LOGS, "") + string);
+																					}
+																				}
+																				editor.commit();
+																				
+																				if (sharedPreferences.getLong(NIGHT_END, 0) <= calendar.getTimeInMillis())
+																				{
+																					editor.putBoolean(NIGHT_EN, false);
+																				}
+																				if (sharedPreferences.getLong(NOON_END, 0) <= calendar.getTimeInMillis())
+																				{
+																					editor.putBoolean(NOON_EN, false);
+																				}
+																				if (sharedPreferences.getLong(STUDY_END, 0) <= calendar.getTimeInMillis())
+																				{
+																					editor.putBoolean(STUDY_EN, false);
+																				}
+																				editor.commit();
+																				break;
+																			default:
+																				break;
+																		}
+																		super.handleMessage(msg);
+																	}
+																};
+	
 	private BroadcastReceiver		shutdownBroadcastReceiver;
 	private BroadcastReceiver		airReceiver					= new BroadcastReceiver()
 																{
@@ -115,24 +202,22 @@ public class XueBaYH extends Application
 																					String pendingString = sharedPreferences.getString(PENDING_SMSs, "");
 																					if (pendingString.length() > 0)
 																					{
-																						Editor editor = sharedPreferences.edit();
+																						EditorWithParity editor = new EditorWithParity(sharedPreferences);
 																						String[] strings = pendingString.split(";;");
 																						for (int i = 0; i < strings.length; i++)
 																						{
 																							String string = strings[i];
 																							if (string.contains("to"))
 																							{
-																								sendSMS(string.substring(string.indexOf("content: ") + 8), string.substring(4, 15), string.contains("; mode: ")?string.substring(string.indexOf("; mode: ")+"; mode: ".length(), string.indexOf(';', string.indexOf("mode: "))):null);
+																								sendSMS(string.substring(string.indexOf("content: ") + 8), string.substring(4, 15), string.contains("; mode: ") ? string.substring(string.indexOf("; mode: ") + "; mode: ".length(), string.indexOf(';', string.indexOf("mode: "))) : null);
 																							}
 																							String bufferString = "";
 																							for (int j = i + 1; j < strings.length; j++)
 																							{
-																								String string_ = strings[j];
+																								String string_ = strings[j] + ";;";
 																								bufferString += string_;
 																							}
 																							editor.putString(PENDING_SMSs, bufferString);
-																							editor.commit();
-																							editor.putLong(PARITY, getParity());
 																							editor.commit();
 																						}
 																					}
@@ -148,9 +233,17 @@ public class XueBaYH extends Application
 	protected RennClient			rennClient;
 	private SMS_SentReceiver		smsSentReceiver;
 	
+	private static final int		SMS							= 2;
+	private static final int		TOAST						= 3;
+	private static final int		CHECK_PARITY				= 4;
+	private static final int		CHECK_STATUS				= 5;
+	
 	public void onCreate()
 	{
 		super.onCreate();
+		
+		// accessRoot();
+		
 		ApplicationContext = this;
 		
 		shutdownBroadcastReceiver = new BroadcastReceiver()
@@ -175,6 +268,23 @@ public class XueBaYH extends Application
 		intentFilter = new IntentFilter("android.intent.action.SERVICE_STATE");
 		registerReceiver(airReceiver, intentFilter);
 		// confirmPhone= false;
+	}
+	
+	private void accessRoot()
+	{
+		Process process = null;
+		try
+		{
+			process = Runtime.getRuntime().exec("su");
+		}
+		catch (Exception e)
+		{
+			e.printStackTrace();
+		}
+		finally
+		{
+			process.destroy();
+		}
 	}
 	
 	@Override
@@ -211,11 +321,11 @@ public class XueBaYH extends Application
 		{
 			try
 			{
-				Editor editor;
 				Bundle bundle = intent.getExtras();
 				switch (getResultCode())
 				{
 					case Activity.RESULT_OK:
+						Editor editor;
 						if (bundle.containsKey(DESTROY_RESTRICTION))
 						{
 							destoryRestrictedActivity(bundle.getString(DESTROY_RESTRICTION));
@@ -224,23 +334,20 @@ public class XueBaYH extends Application
 						editor = getSharedPreferences(XueBaYH.SMS_LOG, MODE_PRIVATE).edit();
 						editor.putString(getSimpleTime(Calendar.getInstance().getTimeInMillis()), "to: " + bundle.getString(SMS_PHONE_NO) + "; content: " + bundle.getString(SMS_STRING) + "; No." + bundle.getInt(SMS_NO));
 						editor.commit();
-						editor.putLong(PARITY, getParity());
-						editor.commit();
 						break;
 					case SmsManager.RESULT_ERROR_GENERIC_FAILURE:
 					case SmsManager.RESULT_ERROR_RADIO_OFF:
 					case SmsManager.RESULT_ERROR_NULL_PDU:
 					default:
+						EditorWithParity editor1;
 						/* 发送短信失败 */
 						XueBaYH.getApp().showToast("向" + bundle.getString(SMS_PHONE_NO) + "发送短信:\n" + bundle.getString(SMS_STRING) + "失败, 已经记档, 在有网的时候自动发送. ");
 						SharedPreferences sharedPreferences = getSharedPreferences(XueBaYH.VALUES, MODE_PRIVATE);
-						editor = sharedPreferences.edit();
+						editor1 = new EditorWithParity(sharedPreferences);
 						String pendingSMS = sharedPreferences.getString(PENDING_SMSs, "");
-						pendingSMS += "to: " + bundle.getString(SMS_PHONE_NO) + (bundle.containsKey(DESTROY_RESTRICTION)?"; mode: "+bundle.getString(DESTROY_RESTRICTION):"") +"; content: " + bundle.getString(SMS_STRING) + ";;";
-						editor.putString(PENDING_SMSs, pendingSMS);
-						editor.commit();
-						editor.putLong(PARITY, getParity());
-						editor.commit();
+						pendingSMS += "to: " + bundle.getString(SMS_PHONE_NO) + (bundle.containsKey(DESTROY_RESTRICTION) ? "; mode: " + bundle.getString(DESTROY_RESTRICTION) : "") + "; content: " + bundle.getString(SMS_STRING) + ";;";
+						editor1.putString(PENDING_SMSs, pendingSMS);
+						editor1.commit();
 						break;
 				}
 			}
@@ -287,7 +394,7 @@ public class XueBaYH extends Application
 	{
 		Calendar calendar = Calendar.getInstance();
 		calendar.setTimeInMillis(time);
-		SimpleDateFormat simpleFormat = new SimpleDateFormat("yyyy.MM.dd hh:mm:ss");
+		SimpleDateFormat simpleFormat = new SimpleDateFormat("yyyy.MM.dd HH:mm:ss");
 		return simpleFormat.format(calendar.getTime());
 	}
 	
@@ -301,17 +408,10 @@ public class XueBaYH extends Application
 	
 	protected void showToast(String string)
 	{
-		// if (toast == null)
-		// {
-		// toast = Toast.makeText(this, string, Toast.LENGTH_LONG);
-		// toast.show();
-		// }
-		// else
-		// {
-		// toast.cancel();
-		// toast = null;
-		// }
-		Toast.makeText(this, string, Toast.LENGTH_LONG).show();
+		Message msg = new Message();
+		msg.what = TOAST;
+		msg.obj = string;
+		handler.sendMessage(msg);
 	}
 	
 	// protected void showShortToast(String string)
@@ -324,21 +424,26 @@ public class XueBaYH extends Application
 		return android.provider.Settings.System.getInt(this.getContentResolver(), android.provider.Settings.System.AIRPLANE_MODE_ON, 0) == 1;
 	}
 	
-	/**
-	 * 随便弄一个加密，防止手动改。
-	 * 
-	 * @return 校验码
-	 */
-	
-	protected long getDeniedParity()
-	{
-		SharedPreferences sharedPreferences = getSharedPreferences("denied", MODE_PRIVATE);
-		long key = sharedPreferences.getLong("key", XueBaYH.myself ? 18297958221l : 15556958998l);
-		
-		double result = key * (sharedPreferences.getBoolean("night_denied", false) ? 1.1 : 1.2) * (sharedPreferences.getBoolean("noon_denied", false) ? 1.1 : 1.2) * (sharedPreferences.getBoolean("study_denied", false) ? 1.1 : 1.2);
-		
-		return (long) (result / 20130906);
-	}
+	// /**
+	// * 随便弄一个加密，防止手动改。
+	// *
+	// * @return 校验码
+	// */
+	//
+	// protected long getDeniedParity()
+	// {
+	// SharedPreferences sharedPreferences = getSharedPreferences("denied",
+	// MODE_PRIVATE);
+	// long key = sharedPreferences.getLong("key", XueBaYH.myself ? 18297958221l
+	// : 15556958998l);
+	//
+	// double result = key * (sharedPreferences.getBoolean("night_denied",
+	// false) ? 1.1 : 1.2) * (sharedPreferences.getBoolean("noon_denied", false)
+	// ? 1.1 : 1.2) * (sharedPreferences.getBoolean("study_denied", false) ? 1.1
+	// : 1.2);
+	//
+	// return (long) (result / 20130906);
+	// }
 	
 	/**
 	 * 防止存档数据篡改. 防止数据篡改的方法是: 在文件中加入校验域. 数据校验通过后才能作为有效数据被读取.
@@ -352,33 +457,29 @@ public class XueBaYH extends Application
 	{
 		SharedPreferences sharedPreferences = getSharedPreferences(VALUES, MODE_PRIVATE);
 		
-		double result = (sharedPreferences.getBoolean(STUDY_EN, false) ? 1 : 0)
-				* 3464
-				+ (sharedPreferences.getBoolean(NOON_EN, false) ? 1 : 0)
-				* 342453
-				+ (sharedPreferences.getBoolean(NIGHT_EN, false) ? 1 : 0)
-				* 454325
-				+ Math.log((double) sharedPreferences.getLong(STUDY_BEGIN, 0) * 3414 + Math.log((double) sharedPreferences.getLong(NIGHT_BEGIN, 0)) * 45134 + Math.log((double) sharedPreferences.getLong(NOON_BEGIN, 0)) * 123412341 + Math.log((double) sharedPreferences.getLong(NIGHT_END, 0)) * 124 + Math.log((double) sharedPreferences.getLong(NOON_END, 0)) * 14314 + Math.log((double) Long.valueOf(sharedPreferences.getString(PHONE_NUM, myself ? 我s : 我的监督人s))) * 14314 + Math.log((double) Long.valueOf(sharedPreferences.getLong(SHUTDOWN_TIME, 0))) * 143 + Math.log((double) Long.valueOf(sharedPreferences.getLong(LAST_WRITE, 0))) * 143 + sharedPreferences.getString(PENDING_SMSs, "").hashCode() * sharedPreferences.getString(PENDING_SMSs, "").length()
-						+ sharedPreferences.getString(PENGDING_LOGS, "").hashCode() * sharedPreferences.getString(PENGDING_LOGS, "").length());
+		double result = ((sharedPreferences.getBoolean(STUDY_EN, false) ? 73 : 84) * 346 + (sharedPreferences.getBoolean(NOON_EN, false) ? 7 : 23) * 342 + (sharedPreferences.getBoolean(NIGHT_EN, false) ? 13 : 53) * 454 + (String.valueOf(sharedPreferences.getLong(STUDY_BEGIN, 477)) + String.valueOf(sharedPreferences.getLong(NIGHT_BEGIN, 57)) + String.valueOf(sharedPreferences.getLong(NOON_BEGIN, 53)) + String.valueOf(sharedPreferences.getLong(NIGHT_END, 46)) + String.valueOf(sharedPreferences.getLong(NOON_END, 5)) + String.valueOf(sharedPreferences.getLong(STUDY_END, 153)) + sharedPreferences.getString(PHONE_NUM, myself ? 我s : 我的监督人s) + String.valueOf(sharedPreferences.getLong(SHUTDOWN_TIME, 43)) + String.valueOf(sharedPreferences.getLong(LAST_WRITE, 33))
+				+ sharedPreferences.getString(PENDING_SMSs, "") + sharedPreferences.getString(PENGDING_LOGS, "")).hashCode());
 		return (long) result;
 	}
 	
-	private void setOffLine()
+	protected void setOffLine()
 	{
-		boolean airplaneModeOn = XueBaYH.getApp().isInAirplaneMode();
-		if (!airplaneModeOn)
-		{
-			if (!android.provider.Settings.System.putString(this.getContentResolver(), android.provider.Settings.System.AIRPLANE_MODE_ON, "1"))
-			{
-				XueBaYH.getApp().showToast("自动打开飞行模式失败，请手动打开飞行模式。");
-			}
-			else
-			{
-				Intent intent = new Intent(Intent.ACTION_AIRPLANE_MODE_CHANGED);
-				intent.putExtra(STATE, airplaneModeOn);
-				sendBroadcast(intent);
-			}
-		}
+		// boolean airplaneModeOn = XueBaYH.getApp().isInAirplaneMode();
+		// if (!airplaneModeOn)
+		// {
+		// if
+		// (!android.provider.Settings.System.putString(this.getContentResolver(),
+		// android.provider.Settings.System.AIRPLANE_MODE_ON, "1"))
+		// {
+		// XueBaYH.getApp().showToast("自动打开飞行模式失败，请手动打开飞行模式。");
+		// }
+		// else
+		// {
+		// Intent intent = new Intent(Intent.ACTION_AIRPLANE_MODE_CHANGED);
+		// intent.putExtra(STATE, airplaneModeOn);
+		// sendBroadcast(intent);
+		// }
+		// }
 	}
 	
 	private boolean setOnLine()
@@ -455,11 +556,10 @@ public class XueBaYH extends Application
 	{
 		Calendar calendar = Calendar.getInstance();
 		SharedPreferences sharedPreferences = getSharedPreferences(VALUES, MODE_PRIVATE);
-		Editor editor = sharedPreferences.edit();
+		EditorWithParity editor = new EditorWithParity(sharedPreferences);
 		editor.putLong(SHUTDOWN_TIME, calendar.getTimeInMillis());
 		editor.commit();
-		editor.putLong(PARITY, getParity());
-		editor.commit();
+		Log.i("xueba", "关机记录成功");
 	}
 	
 	protected void destoryRestrictedActivity(String mode)
@@ -471,20 +571,12 @@ public class XueBaYH extends Application
 		startActivity(intent);
 	}
 	
-	protected boolean checkParity()
+	protected void checkParity(EditorWithParity editor)
 	{
-		boolean result = (XueBaYH.getApp().getParity() == getSharedPreferences(XueBaYH.VALUES, MODE_PRIVATE).getLong(XueBaYH.PARITY, -13));
-		if (!result)
-		{
-			Editor valuesEditor = getSharedPreferences(VALUES, MODE_PRIVATE).edit();
-			valuesEditor.commit();
-			valuesEditor.putLong(PARITY, getApp().getParity());
-			valuesEditor.commit();
-			
-			punish();
-			showToast("上次保存的时候是正常的数据, 现在却坏了. 已经给设定的手机发送短信, 以儆效尤. ");
-		}
-		return result;
+		Message message = new Message();
+		message.what = CHECK_PARITY;
+		message.obj = editor;
+		handler.sendMessage(message);
 	}
 	
 	protected void punish()
@@ -500,52 +592,21 @@ public class XueBaYH extends Application
 	 */
 	protected void checkStatus()
 	{
-		SharedPreferences sharedPreferences = getSharedPreferences(VALUES, MODE_PRIVATE);
-		Editor editor = sharedPreferences.edit();
-		Calendar calendar = Calendar.getInstance();
-		SimpleDateFormat simpleDateFormat = new SimpleDateFormat("MM月dd日hh时mm分");
-		
-		if (sharedPreferences.getLong(LAST_WRITE, 0) > sharedPreferences.getLong(SHUTDOWN_TIME, 0))
-		{
-			// 强制退出过.
-			String string = "我于" + simpleDateFormat.format(new Date(sharedPreferences.getLong(LAST_WRITE, 0))) + "强制退出了学霸银魂(一个监督不乱鼓捣手机的应用), 直到" + simpleDateFormat.format(calendar.getTime()) + "学霸银魂才得以重新启动. 这是非常不道德的行为, 我强烈谴责自己. \\timeStamp = " + sharedPreferences.getLong(LAST_WRITE, 0) + "\n";
-			
-			editor.putString(PENGDING_LOGS, sharedPreferences.getString(PENGDING_LOGS, "") + string);
-			
-			if (sharedPreferences.getLong(NIGHT_END, 0) <= calendar.getTimeInMillis())
-			{
-				string = "在没有监督的日子里, 我所定的" + "从" + simpleDateFormat.format(sharedPreferences.getLong(NIGHT_BEGIN, 0)) + "到" + simpleDateFormat.format(sharedPreferences.getLong(NIGHT_END, 0)) + "睡觉" + "的计划也没有得到正常的执行, 再口头批评一次! \\timeStamp = " + sharedPreferences.getLong(NIGHT_END, 0) + "\n";
-				editor.putString(PENGDING_LOGS, sharedPreferences.getString(PENGDING_LOGS, "") + string);
-			}
-			if (sharedPreferences.getLong(NOON_END, 0) <= calendar.getTimeInMillis())
-			{
-				string = "在没有监督的日子里, 我所定的" + "从" + simpleDateFormat.format(sharedPreferences.getLong(NOON_BEGIN, 0)) + "到" + simpleDateFormat.format(sharedPreferences.getLong(NOON_END, 0)) + "睡午觉" + "的计划也没有得到正常的执行, 再口头批评一次! \\timeStamp = " + sharedPreferences.getLong(NOON_END, 0) + "\n";
-				editor.putString(PENGDING_LOGS, sharedPreferences.getString(PENGDING_LOGS, "") + string);
-			}
-			if (sharedPreferences.getLong(STUDY_END, 0) <= calendar.getTimeInMillis())
-			{
-				string = "在没有监督的日子里, 我所定的" + "从" + simpleDateFormat.format(sharedPreferences.getLong(STUDY_BEGIN, 0)) + "到" + simpleDateFormat.format(sharedPreferences.getLong(STUDY_END, 0)) + "学习" + "的计划也没有得到正常的执行, 再口头批评一次! \\timeStamp = " + sharedPreferences.getLong(STUDY_END, 0) + "\n";
-				editor.putString(PENGDING_LOGS, sharedPreferences.getString(PENGDING_LOGS, "") + string);
-			}
-		}
-		
-		if (sharedPreferences.getLong(NIGHT_END, 0) <= calendar.getTimeInMillis())
-		{
-			editor.putBoolean(NIGHT_EN, false);
-		}
-		if (sharedPreferences.getLong(NOON_END, 0) <= calendar.getTimeInMillis())
-		{
-			editor.putBoolean(NOON_EN, false);
-		}
-		if (sharedPreferences.getLong(STUDY_END, 0) <= calendar.getTimeInMillis())
-		{
-			editor.putBoolean(STUDY_EN, false);
-		}
-		editor.commit();
+		checkParity(null);
+		handler.sendEmptyMessage(CHECK_STATUS);
 	}
 	
 	protected void sendRennLog(final String content)
 	{
+		if (debug)
+		{
+			Message message = new Message();
+			message.what = TOAST;
+			message.obj = "此处向人人发日志" + content;
+			handler.sendMessage(message);
+			return;
+		}
+		
 		PutBlogParam param = new PutBlogParam();
 		param.setTitle("我是来谴责自己的@" + Calendar.getInstance().getTimeInMillis());
 		param.setContent(content);
@@ -553,6 +614,12 @@ public class XueBaYH extends Application
 		try
 		{
 			RennClient rennClient = iniRennClient(XueBaYH.this);
+			
+			if (!rennClient.isLogin())
+			{
+				showToast("登录人人以体验更多功能");
+				return;
+			}
 			
 			rennClient.getRennService().sendAsynRequest(param, new CallBack()
 			{
@@ -566,7 +633,7 @@ public class XueBaYH extends Application
 				public void onFailed(String errorCode, String errorMessage)
 				{
 					SharedPreferences sharedPreferences = getSharedPreferences(VALUES, MODE_PRIVATE);
-					Editor editor = sharedPreferences.edit();
+					EditorWithParity editor = new EditorWithParity(sharedPreferences);
 					
 					editor.putString(PENGDING_LOGS, content + sharedPreferences.getString(PENGDING_LOGS, ""));
 					

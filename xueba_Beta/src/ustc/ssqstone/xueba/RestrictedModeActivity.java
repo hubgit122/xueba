@@ -12,6 +12,7 @@ import android.content.SharedPreferences;
 import android.content.SharedPreferences.Editor;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Debug;
 import android.view.KeyEvent;
 import android.view.View;
 import android.view.View.OnClickListener;
@@ -106,7 +107,7 @@ public class RestrictedModeActivity extends Activity
 				Calendar startCalendar=Calendar.getInstance();
 				long start=RestrictedModeActivity.this.getIntent().getLongExtra(XueBaYH.START_TIME, 0);
 				startCalendar.setTimeInMillis(start);
-				SimpleDateFormat hmFormat = new SimpleDateFormat("hh点mm分"); 
+				SimpleDateFormat hmFormat = new SimpleDateFormat("HH点mm分"); 
 				smsString="我到现在了还想不睡觉鼓捣手机, 原定"+hmFormat.format(startCalendar.getTime())+"睡觉的. ";
 			}
 			else
@@ -115,7 +116,7 @@ public class RestrictedModeActivity extends Activity
 	//			Calendar calendar=Calendar.getInstance();
 				long start=RestrictedModeActivity.this.getIntent().getLongExtra(XueBaYH.START_TIME, 0);
 	//			calendar.setTimeInMillis(now-start);
-	//			SimpleDateFormat hmFormat = new SimpleDateFormat("hh小时mm分钟"); 
+	//			SimpleDateFormat hmFormat = new SimpleDateFormat("HH小时mm分钟"); 
 	//			smsString="我于学习开始"+hmFormat.format(calendar.getTime())+"后放弃.";
 				smsString="我于学习开始"+(now-start)/1000/60/60+"时"+(now-start)/1000/60%60+"分"+(now-start)/1000%60+"秒后放弃.";
 			}
@@ -130,10 +131,17 @@ public class RestrictedModeActivity extends Activity
 				@Override
 				public void onClick(DialogInterface dialog, int which)
 				{
-					smsString+=editText.getText().toString();
-					XueBaYH.getApp().sendSMS(smsString, phoneNum, getIntent().getStringExtra(XueBaYH.RESTRICTED_MODE));
-					
-					XueBaYH.getApp().showToast("短信发送成功后自动退出. ");
+					if (XueBaYH.debug)
+					{
+						XueBaYH.getApp().destoryRestrictedActivity(getIntent().getStringExtra(XueBaYH.RESTRICTED_MODE));
+					}
+					else 
+					{
+						smsString+=editText.getText().toString();
+						XueBaYH.getApp().sendSMS(smsString, phoneNum, getIntent().getStringExtra(XueBaYH.RESTRICTED_MODE));
+						
+						XueBaYH.getApp().showToast("短信发送成功后自动退出. ");
+					}
 				}
 			})
 		    .setNegativeButton("取消", new DialogInterface.OnClickListener()
@@ -240,7 +248,7 @@ public class RestrictedModeActivity extends Activity
 			if(getIntent().hasExtra(XueBaYH.RESTRICTED_MODE))
 			{
 				SharedPreferences sharedPreferences = getSharedPreferences(XueBaYH.VALUES,MODE_PRIVATE);
-				Editor editor=sharedPreferences.edit();
+				EditorWithParity editor=new EditorWithParity(sharedPreferences);
 				if (getIntent().getStringExtra(XueBaYH.RESTRICTED_MODE).equals(Status.sleeping_night.getLocalString()))
 				{
 					editor.putBoolean(XueBaYH.NIGHT_EN, false);
@@ -253,8 +261,6 @@ public class RestrictedModeActivity extends Activity
 				{
 					editor.putBoolean(XueBaYH.STUDY_EN, false);
 				}
-				editor.commit();
-				editor.putLong(XueBaYH.PARITY, XueBaYH.getApp().getParity());
 				editor.commit();
 			}
 			finish();

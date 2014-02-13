@@ -15,7 +15,6 @@ import android.app.AlertDialog;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
-import android.content.SharedPreferences.Editor;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
@@ -143,7 +142,7 @@ public class MainActivity extends Activity
 	 */
 	protected void resumeData()
 	{
-		XueBaYH.getApp().checkParity();
+		XueBaYH.getApp().checkParity(null);
 		
 		SharedPreferences values = getSharedPreferences(XueBaYH.VALUES, MODE_PRIVATE);
 		
@@ -721,7 +720,8 @@ public class MainActivity extends Activity
 			}
 			
 			SharedPreferences sharedPreferences = getSharedPreferences(XueBaYH.VALUES, MODE_PRIVATE);
-			Editor editor = sharedPreferences.edit();
+			EditorWithParity editor = new EditorWithParity(sharedPreferences);
+			
 			editor.putBoolean(XueBaYH.NIGHT_EN, nightCB.isChecked());
 			editor.putBoolean(XueBaYH.NOON_EN, noonCB.isChecked());
 			editor.putBoolean(XueBaYH.STUDY_EN, studyCB.isChecked());
@@ -732,8 +732,6 @@ public class MainActivity extends Activity
 			editor.putLong(XueBaYH.STUDY_END, studyEnd);
 			editor.putLong(XueBaYH.STUDY_BEGIN, studyBegin);
 			editor.putString(XueBaYH.PHONE_NUM, phoneTV.getText().toString());
-			editor.commit();
-			editor.putLong(XueBaYH.PARITY, XueBaYH.getApp().getParity());
 			editor.commit();
 			
 			XueBaYH.getApp().showToast(XueBaYH.INFORM_SAVED);
@@ -822,56 +820,6 @@ public class MainActivity extends Activity
 			}
 		}
 		return result;
-		// if (!oldPhoneString.equals(newPhoneString)&&result)
-		// {
-		// if (isConfirmPhone())
-		// {
-		// if (XueBaYH.getApp().isInAirplaneMode())
-		// {
-		// XueBaYH.getApp().showToast("把飞行模式关了再改变监督人. ");
-		// return false;
-		// }
-		// else
-		// {
-		// XueBaYH.getApp().sendSMS(XueBaYH.INFORM_OFF, oldPhoneString);
-		// XueBaYH.getApp().sendSMS(XueBaYH.INFORM_ON, newPhoneString);
-		// XueBaYH.getApp().showToast("监督人修改成功");
-		// setConfirmPhone(false);
-		// return true;
-		// }
-		// }
-		// else
-		// {
-		// AlertDialog.Builder builder;
-		// builder = new AlertDialog.Builder(MainActivity.this)
-		// .setTitle("确认监督人更改")
-		// .setMessage("与上次监督人不同, 你确定要通知双方并更改? ")
-		// .setIcon(android.R.drawable.ic_dialog_info)
-		// .setPositiveButton("确定",
-		// new DialogInterface.OnClickListener()
-		// {
-		// @Override
-		// public void onClick(DialogInterface dialog, int which)
-		// {
-		// XueBaYH.getApp().showToast("请再次按下保存键");
-		// setConfirmPhone(true);
-		// dialog.dismiss();
-		// }
-		// })
-		// .setNegativeButton("取消",
-		// new DialogInterface.OnClickListener()
-		// {
-		// @Override
-		// public void onClick(DialogInterface dialog, int which)
-		// {
-		// dialog.dismiss();
-		// }
-		// });
-		//
-		// builder.create().show();
-		// return false;
-		// }
-		// }
 	}
 	
 	private boolean halting()
@@ -883,21 +831,6 @@ public class MainActivity extends Activity
 		resualt = (sharedPreferences.getBoolean(XueBaYH.STUDY_EN, false) && (now > studyBegin) && (now < studyEnd)) || (sharedPreferences.getBoolean(XueBaYH.NOON_EN, false) && (now > noonBegin) && (now < noonEnd)) || (sharedPreferences.getBoolean(XueBaYH.NIGHT_EN, false) && (now > nightBegin) && (now < nightEnd));
 		return !resualt;
 	}
-	
-	// public boolean isConfirmPhone()
-	// {
-	// SharedPreferences sharedPreferences =
-	// getSharedPreferences(XueBaYH.VALUES, XueBaYH.MODE_PRIVATE);
-	// return sharedPreferences.getBoolean(CONFIRM_PHONE, true);
-	// }
-	//
-	// public void setConfirmPhone(boolean confirmPhone_)
-	// {
-	// Editor editor = getSharedPreferences(XueBaYH.VALUES,
-	// MODE_PRIVATE).edit();
-	// editor.putBoolean(CONFIRM_PHONE, confirmPhone_);
-	// editor.commit();
-	// }
 	
 	/**
 	 * 按确定键会明确检查是否成功保存数据并提示修改. 按返回键退出时不应该尝试保存.
