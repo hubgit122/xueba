@@ -10,18 +10,25 @@ import com.renn.rennsdk.exception.RennException;
 import com.renn.rennsdk.param.AccessControl;
 import com.renn.rennsdk.param.PutBlogParam;
 
+import android.R.layout;
+import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.app.AlertDialog;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.graphics.PixelFormat;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
+import android.view.Gravity;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.View;
+import android.view.WindowManager;
 import android.view.View.OnClickListener;
+import android.view.WindowManager.LayoutParams;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.CheckBox;
@@ -842,6 +849,7 @@ public class MainActivity extends Activity
 		{
 			XueBaYH.getApp().showToast(XueBaYH.INFORM_NOT_SAVING);
 		}
+		
 		super.onDestroy();
 	}
 	
@@ -938,4 +946,6 @@ public class MainActivity extends Activity
 	// XueBaYH.getApp().restartMonitorService();
 	// super.onPause();
 	// }
+
+
 }

@@ -269,6 +269,10 @@ public class RestrictedModeActivity extends Activity
 				{
 					editor.putBoolean(XueBaYH.STUDY_EN, false);
 				}
+				else if (getIntent().getStringExtra(XueBaYH.RESTRICTED_MODE).equals(Status.studying.getLocalString())) 
+				{
+					editor.putInt(XueBaYH.USAGE_TIME, 0);
+				}
 				editor.commit();
 				XueBaYH.getApp().restartMonitorService();
 			}

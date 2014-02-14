@@ -4,6 +4,7 @@ import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.List;
 
+import android.annotation.SuppressLint;
 import android.app.ActivityManager;
 import android.app.ActivityManager.RunningTaskInfo;
 import android.app.Service;
@@ -14,12 +15,16 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.content.SharedPreferences.Editor;
+import android.graphics.PixelFormat;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.os.ConditionVariable;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Message;
+import android.view.Gravity;
+import android.view.WindowManager;
+import android.view.WindowManager.LayoutParams;
 
 /**
  * 发现一个bug，studyEn的值会在我看不到的地方发生翻转。
@@ -62,12 +67,15 @@ public class MonitorService extends Service
 	// private static final int PUNISH=1;
 	private static final int	TO_RESTRICT		= 4;
 	private static final String	SURF_TIME_LOG	= "surf_time_log";
-	// private static final int INT_ACC = 5;
-	// protected static final int INT_ZERO = 6;
+	private static final int	ADD_VIEW	= 5;
+	private static final int	REMOVE_VIEW	= 6;
 	/**
 	 * 单位是毫秒.
 	 */
 	private int					checkInterval;
+	/**
+	 * 全局变量, 记录本次任务是否被通知. 
+	 */
 	private boolean				informed;
 	private Handler				handler			= new Handler()
 												{
@@ -76,6 +84,23 @@ public class MonitorService extends Service
 													{
 														switch (msg.what)
 														{
+															case REMOVE_VIEW:
+																try
+																{
+																	wm.removeView(myFV);
+																}
+																catch (Exception e) {
+																}
+																break;
+															case ADD_VIEW:
+																try
+																{
+																	wm.addView(myFV, wmParams);
+																}
+																catch (Exception e)
+																{
+																}
+																break;
 															case SMS:
 																SharedPreferences values = getSharedPreferences(XueBaYH.VALUES, MODE_PRIVATE);
 																XueBaYH.getApp().sendSMS((String) msg.obj, values.getString(XueBaYH.PHONE_NUM, XueBaYH.myself ? XueBaYH.我的监督人s : XueBaYH.我s), null);
@@ -115,6 +140,12 @@ public class MonitorService extends Service
 			return chineseString;
 		}
 	}
+
+	protected WindowManager wm = null;
+	private WindowManager.LayoutParams	wmParams	= null;
+	private RestView		myFV		= null;
+	protected int screenWidth;
+	protected int screenHeight;
 	
 	@Override
 	public void onCreate()
@@ -136,6 +167,8 @@ public class MonitorService extends Service
 		intentFilter = new IntentFilter();
 		intentFilter.addAction(Intent.ACTION_SCREEN_OFF);
 		registerReceiver(screenOffBroadcastReceiver, intentFilter);
+		
+		createRestView();
 	}
 	
 	/**
@@ -205,11 +238,12 @@ public class MonitorService extends Service
 			removeRestriction = true;
 			tmpStatus = Status.sleeping_night;
 		}
+		
 		if ((this.status==Status.force_resting)&&(startTime + REST_TIME <= now))
 		{
-			tmpStatus = Status.force_resting;
-			removeRestriction = true;
 			editor.putInt(XueBaYH.USAGE_TIME, 0);
+			removeRestriction = true;
+			tmpStatus = Status.force_resting;
 		}
 		
 		if (removeRestriction)
@@ -217,8 +251,16 @@ public class MonitorService extends Service
 			status = Status.halting;
 			informed = false;
 			editor.commit();
-			trimUsageTime(0);
-			XueBaYH.getApp().destoryRestrictedActivity(tmpStatus.getLocalString());
+			
+			if (tmpStatus!=Status.force_resting)
+			{
+				trimUsageTime(0);
+				XueBaYH.getApp().destoryRestrictedActivity(tmpStatus.getLocalString());
+			}
+			else 
+			{
+				handler.sendEmptyMessage(REMOVE_VIEW);
+			}
 		}
 		
 		if (screenLocked)
@@ -229,6 +271,8 @@ public class MonitorService extends Service
 		{
 			if (getSharedPreferences(XueBaYH.VALUES, MODE_PRIVATE).getInt(XueBaYH.USAGE_TIME, 0) > MAX_USE_TIME)
 			{
+				handler.sendEmptyMessage(ADD_VIEW);
+				
 				status = Status.force_resting;
 				startTime = now + MAX_USE_TIME - getSharedPreferences(XueBaYH.VALUES, MODE_PRIVATE).getInt(XueBaYH.USAGE_TIME, 0);
 			}
@@ -391,6 +435,13 @@ public class MonitorService extends Service
 	// 在设置里强行退出会引发这个函数, 但是使用任务管理软件强行退出就不会进入这个函数了.
 	public void onDestroy()
 	{
+		try
+		{
+			wm.removeView(myFV);
+		}
+		catch (Exception e) {
+		}
+		
 		unregisterReceiver(netStateReceiver);
 		unregisterReceiver(screenOffBroadcastReceiver);
 		unregisterReceiver(screenOnBroadcastReceiver);
@@ -599,7 +650,7 @@ public class MonitorService extends Service
 		
 		String packageName = localComponentName.getPackageName();
 		
-		if (status == Status.halting)
+		if (status == Status.halting || status == Status.force_resting)
 		{
 			if ("com.UCMobile com.uc.browser com.android.chrome com.android.browser com.dolphin.browser.xf com.tencent.mtt sogou.mobile.explorer com.baidu.browser.apps com.oupeng.mini.android ".contains(packageName))
 			{
@@ -695,7 +746,36 @@ public class MonitorService extends Service
 			task.mConditionVariable.open();
 		}
 	}
-	
+
+	@SuppressLint("NewApi")
+	private void createRestView()
+	{
+		myFV = new RestView(getApplicationContext());
+		myFV.setImageResource(R.drawable.resting);
+		wm = (WindowManager) getApplicationContext().getSystemService("window");
+		
+		screenWidth = wm.getDefaultDisplay().getWidth();//屏幕宽度  
+		screenHeight = wm.getDefaultDisplay().getHeight();  
+		
+		wmParams = new WindowManager.LayoutParams();
+		
+		wmParams.type = LayoutParams.TYPE_PHONE;
+		wmParams.format = PixelFormat.RGBA_8888;
+
+		wmParams.flags = LayoutParams.FLAG_NOT_TOUCH_MODAL | LayoutParams.FLAG_NOT_TOUCHABLE | LayoutParams.FLAG_NOT_FOCUSABLE;// | LayoutParams.FLAG_DIM_BEHIND ;// | LayoutParams.FLAG_WATCH_OUTSIDE_TOUCH
+		//| LayoutParams.FLAG_NOT_TOUCH_MODAL | 
+		
+		wmParams.gravity = Gravity.LEFT | Gravity.TOP;
+		// 以屏幕左上角为原点，设置x、y初始值
+		wmParams.x = 0;
+		wmParams.y = 0;
+		
+		// 设置悬浮窗口长宽数据
+		wmParams.width = WindowManager.LayoutParams.FILL_PARENT;
+		wmParams.height = WindowManager.LayoutParams.FILL_PARENT;
+		
+		wmParams.alpha = 0.8f;
+	}
 	// private Notification updateNotification()
 	// {
 	// Notification notification;
