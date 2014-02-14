@@ -466,7 +466,7 @@ public class MonitorService extends Service
 		String lastSurfDateString = log.getString(LAST_SURF_DATE, "");
 		String surfTimeIndexString = SURF_TIME_OF_S + lastSurfDateString;
 		
-		return (long) log.getFloat(surfTimeIndexString, 12) * (Math.abs(lastSurfDateString.hashCode()) % 2354667);
+		return (String.valueOf(log.getFloat(surfTimeIndexString, 31743)) + lastSurfDateString).hashCode();
 	}
 	
 	protected class StoppableRunnable implements Runnable
@@ -650,7 +650,7 @@ public class MonitorService extends Service
 		
 		String packageName = localComponentName.getPackageName();
 		
-		if (status == Status.halting || status == Status.force_resting)
+		if (status == Status.halting )
 		{
 			if ("com.UCMobile com.uc.browser com.android.chrome com.android.browser com.dolphin.browser.xf com.tencent.mtt sogou.mobile.explorer com.baidu.browser.apps com.oupeng.mini.android ".contains(packageName))
 			{
@@ -670,6 +670,8 @@ public class MonitorService extends Service
 				
 				logEditor.putString(LAST_SURF_DATE, XueBaYH.getSimpleDate(Calendar.getInstance().getTimeInMillis()));
 				logEditor.putFloat(surfTimeIndexString, surfTimeValue);
+				logEditor.commit();
+				logEditor.putLong(XueBaYH.PARITY, surfTimeParity());
 				logEditor.commit();
 				
 				if ((surfTimeValue >= 1800) && (surfTimeValue < 3600) && ((int) surfTimeValue % 180 == 0))
@@ -694,9 +696,13 @@ public class MonitorService extends Service
 				return false;
 			}
 		}
+		else if (status == Status.force_resting) 
+		{
+			return false;
+		}
 		else
 		{
-			String permitted = (status == Status.force_resting)?"ustc.ssqstone.xueba ": ("ustc.ssqstone.xueba com.android.settings GSW.AddinTimer com.zdworks.android.zdclock com.dianxinos.clock com.android.phone com.android.contacts com.android.mms com.jb.gosms-1 org.dayup.gnotes " + ((status == Status.studying) ? ("com.snda.youni cn.ssdl.bluedict com.ghisler.android.TotalCommander udk.android.reader jp.ne.kutu.Panecal com.diotek.diodict3.phone.samsung.chn com.docin.zlibrary.ui.android com.towords com.youdao.note com.duokan.reader com.baidu.wenku com.nd.android.pandareader com.qq.reader com.lectek.android.sfreader bubei.tingshu de.softxperience.android.noteeverything ") : "")); // ,
+			String permitted = ("ustc.ssqstone.xueba com.android.settings GSW.AddinTimer com.zdworks.android.zdclock com.dianxinos.clock com.android.phone com.android.contacts com.android.mms com.jb.gosms-1 org.dayup.gnotes " + ((status == Status.studying) ? ("com.snda.youni cn.ssdl.bluedict com.ghisler.android.TotalCommander udk.android.reader jp.ne.kutu.Panecal com.diotek.diodict3.phone.samsung.chn com.docin.zlibrary.ui.android com.towords com.youdao.note com.duokan.reader com.baidu.wenku com.nd.android.pandareader com.qq.reader com.lectek.android.sfreader bubei.tingshu de.softxperience.android.noteeverything ") : "")); // ,
 			
 			return (Calendar.getInstance().getTimeInMillis()>startTime)&&!permitted.contains(packageName);
 		}

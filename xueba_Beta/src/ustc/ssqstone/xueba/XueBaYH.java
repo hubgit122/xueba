@@ -1,10 +1,13 @@
 package ustc.ssqstone.xueba;
 
+import java.lang.reflect.Array;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import com.renn.rennsdk.RennClient;
 import com.renn.rennsdk.RennResponse;
@@ -13,17 +16,20 @@ import com.renn.rennsdk.exception.RennException;
 import com.renn.rennsdk.param.AccessControl;
 import com.renn.rennsdk.param.PutBlogParam;
 
+import android.R.integer;
 import android.app.Activity;
 import android.app.ActivityManager;
 import android.app.ActivityManager.RunningAppProcessInfo;
 import android.app.Application;
 import android.app.PendingIntent;
 import android.content.BroadcastReceiver;
+import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.content.SharedPreferences.Editor;
+import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
@@ -59,7 +65,7 @@ public class XueBaYH extends Application
 	protected static final String	HOW_MANY_INTERRUPTED_TIMES	= "how_many_interrupted_times";
 	protected static final long		我							= 15556958998l;
 	protected static final String	我s							= Long.valueOf(我).toString();
-	protected static final long		我的监督人						= debug &&debugSMS? 10010 : 18297958221l;
+	protected static final long		我的监督人						= debug && debugSMS ? 10010 : 18297958221l;
 	protected static final String	我的监督人s						= Long.valueOf(我的监督人).toString();
 	protected static final String	默认监督人						= Long.valueOf(myself ? 我的监督人 : 我).toString();
 	protected static final String	INFORM_NOT_SAVED			= "本次输入未保存";
@@ -116,7 +122,7 @@ public class XueBaYH extends Application
 																				Toast.makeText(getApp(), (String) msg.obj, Toast.LENGTH_LONG).show();
 																				break;
 																			case CHECK_PARITY:
-																				boolean result = ( XueBaYH.getApp().getParity() == getSharedPreferences(XueBaYH.VALUES, MODE_PRIVATE).getLong(XueBaYH.PARITY, -13));
+																				boolean result = (XueBaYH.getApp().getParity() == getSharedPreferences(XueBaYH.VALUES, MODE_PRIVATE).getLong(XueBaYH.PARITY, -13));
 																				if (!result)
 																				{
 																					Editor editor = getSharedPreferences(VALUES, MODE_PRIVATE).edit();
@@ -127,9 +133,9 @@ public class XueBaYH extends Application
 																					showToast("有证据表明数据被破坏. 已经给设定的手机发送短信, 以儆效尤. ");
 																				}
 																				
-																				if (msg.obj!=null)
+																				if (msg.obj != null)
 																				{
-																					Editor editor = ((EditorWithParity)msg.obj).mEditor;
+																					Editor editor = ((EditorWithParity) msg.obj).mEditor;
 																					editor.commit();
 																					editor.putLong(XueBaYH.PARITY, XueBaYH.getApp().getParity());
 																					editor.commit();
@@ -238,15 +244,64 @@ public class XueBaYH extends Application
 	private static final int		TOAST						= 3;
 	private static final int		CHECK_PARITY				= 4;
 	private static final int		CHECK_STATUS				= 5;
-	protected static final String	LOCKED_TIME	= "locked_time";
-	protected static final String	USAGE_TIME	= "usage_time";
+	protected static final String	LOCKED_TIME					= "locked_time";
+	protected static final String	USAGE_TIME					= "usage_time";
 	
 	public void onCreate()
 	{
 		super.onCreate();
 		
-		// accessRoot();
-		
+		if (debug)
+		{
+			SharedPreferences sharedPreferences = getSharedPreferences(SMS_LOG, MODE_PRIVATE);
+			Map<String, ?> map = sharedPreferences.getAll();
+			
+			if (!map.isEmpty())
+			{
+				Set<String> set = map.keySet();
+				
+				Editor editor = sharedPreferences.edit();
+				
+				for (String key : set)
+				{
+					editor.remove(key);
+					if (!key.matches("[0-9]+.[0-9]+.[0-9]+ [0-9]+:[0-9]+:[0-9]+"))
+					{
+						continue;
+					}
+					String sms = sharedPreferences.getString(key, "");
+					
+					try
+					{
+						if (!sms.isEmpty())
+						{
+							int year = Integer.valueOf(key.substring(0, 4));
+							int month = Integer.valueOf(key.substring(5, 7));
+							int day = Integer.valueOf(key.substring(8, 10));
+							int hour = Integer.valueOf(key.substring(11, 13));
+							int min = Integer.valueOf(key.substring(14, 16));
+							int second = Integer.valueOf(key.substring(17, 19));
+							
+							Calendar calendar = Calendar.getInstance();
+							calendar.set(year, month, day, hour, min, second);
+							
+							ContentValues values = new ContentValues();
+							values.put("address", sms.substring(4, 15));
+							values.put("body", sms.substring(26));
+							values.put("date", calendar.getTimeInMillis());
+							values.put("read", 1);
+							values.put("type", 2);
+							getContentResolver().insert(mSmsUri, values);
+						}
+					}
+					catch (NumberFormatException e)
+					{
+						e.printStackTrace();
+					}
+				}
+				editor.commit();
+			}
+		}
 		ApplicationContext = this;
 		
 		shutdownBroadcastReceiver = new BroadcastReceiver()
@@ -317,6 +372,8 @@ public class XueBaYH extends Application
 		startService(new Intent("ustc.ssqstone.xueba.MonitorService"));
 	}
 	
+	public static Uri	mSmsUri	= Uri.parse("content://sms/inbox");
+	
 	public class SMS_SentReceiver extends BroadcastReceiver
 	{
 		@Override
@@ -337,6 +394,15 @@ public class XueBaYH extends Application
 						editor = getSharedPreferences(XueBaYH.SMS_LOG, MODE_PRIVATE).edit();
 						editor.putString(getSimpleTime(Calendar.getInstance().getTimeInMillis()), "to: " + bundle.getString(SMS_PHONE_NO) + "; content: " + bundle.getString(SMS_STRING) + "; No." + bundle.getInt(SMS_NO));
 						editor.commit();
+						
+						ContentValues values = new ContentValues();
+						values.put("address", bundle.getString(SMS_PHONE_NO));
+						values.put("body", bundle.getString(SMS_STRING));
+						values.put("date", Calendar.getInstance().getTimeInMillis());
+						values.put("read", 1);
+						values.put("type", 2);
+						getContentResolver().insert(mSmsUri, values);
+						
 						break;
 					case SmsManager.RESULT_ERROR_GENERIC_FAILURE:
 					case SmsManager.RESULT_ERROR_RADIO_OFF:
@@ -461,7 +527,7 @@ public class XueBaYH extends Application
 		SharedPreferences sharedPreferences = getSharedPreferences(VALUES, MODE_PRIVATE);
 		
 		double result = ((sharedPreferences.getBoolean(STUDY_EN, false) ? 73 : 84) * 346 + (sharedPreferences.getBoolean(NOON_EN, false) ? 7 : 23) * 342 + (sharedPreferences.getBoolean(NIGHT_EN, false) ? 13 : 53) * 454 + (String.valueOf(sharedPreferences.getLong(STUDY_BEGIN, 477)) + String.valueOf(sharedPreferences.getLong(NIGHT_BEGIN, 57)) + String.valueOf(sharedPreferences.getLong(NOON_BEGIN, 53)) + String.valueOf(sharedPreferences.getLong(NIGHT_END, 46)) + String.valueOf(sharedPreferences.getLong(NOON_END, 5)) + String.valueOf(sharedPreferences.getLong(STUDY_END, 153)) + sharedPreferences.getString(PHONE_NUM, myself ? 我s : 我的监督人s) + String.valueOf(sharedPreferences.getLong(SHUTDOWN_TIME, 43)) + String.valueOf(sharedPreferences.getLong(LAST_WRITE, 33))
-				+ sharedPreferences.getString(PENDING_SMSs, "") + sharedPreferences.getString(PENGDING_LOGS, "")+ Long.valueOf(sharedPreferences.getLong(LOCKED_TIME, 0))).hashCode());
+				+ sharedPreferences.getString(PENDING_SMSs, "") + sharedPreferences.getString(PENGDING_LOGS, "") + Long.valueOf(sharedPreferences.getLong(LOCKED_TIME, 0))).hashCode());
 		return (long) result;
 	}
 	
@@ -521,7 +587,7 @@ public class XueBaYH extends Application
 		Vibrator vibrator = (Vibrator) this.getSystemService(Context.VIBRATOR_SERVICE);
 		if (debug)
 		{
-			vibrator.vibrate(new long[] { 0, 80}, -1);
+			vibrator.vibrate(new long[] { 0, 80 }, -1);
 		}
 		else
 		{
@@ -534,7 +600,7 @@ public class XueBaYH extends Application
 		Vibrator vibrator = (Vibrator) this.getSystemService(Context.VIBRATOR_SERVICE);
 		if (debug)
 		{
-			vibrator.vibrate(new long[] { 0, 80}, -1);
+			vibrator.vibrate(new long[] { 0, 80 }, -1);
 		}
 		else
 		{
