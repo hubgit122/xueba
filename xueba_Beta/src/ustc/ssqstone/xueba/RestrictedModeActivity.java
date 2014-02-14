@@ -270,6 +270,7 @@ public class RestrictedModeActivity extends Activity
 					editor.putBoolean(XueBaYH.STUDY_EN, false);
 				}
 				editor.commit();
+				XueBaYH.getApp().restartMonitorService();
 			}
 			finish();
 		}
@@ -286,6 +287,7 @@ public class RestrictedModeActivity extends Activity
 	{
 		XueBaYH.getApp().vibrateOK();
 		super.onDestroy();
+		
 		Intent intent=new Intent(RestrictedModeActivity.this,MainActivity.class);
 		intent.setFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP);
 		startActivity(intent);

@@ -50,8 +50,8 @@ import android.os.Message;
  */
 public class MonitorService extends Service
 {
-	private static final int	REST_TIME	= XueBaYH.debug?20*1000:60*1000;
-	private static final int	MAX_USE_TIME	= XueBaYH.debug? 20*1000 : 1000 * 60 * 45;
+	private static final int	REST_TIME	= XueBaYH.debugRest?10*1000:60*1000;
+	private static final int	MAX_USE_TIME	= XueBaYH.debugRest? 30*1000 : 1000 * 60 * 45;
 	private static final String	LAST_SURF_DATE	= "last surf date";
 	private static final String	SURF_TIME_OF_S	= "surf time of ";
 	// private static final String SURF_TIME_OF_TODAY_S =
@@ -205,7 +205,7 @@ public class MonitorService extends Service
 			removeRestriction = true;
 			tmpStatus = Status.sleeping_night;
 		}
-		if ((tmpStatus==Status.force_resting)&&(startTime + REST_TIME <= now))
+		if ((this.status==Status.force_resting)&&(startTime + REST_TIME <= now))
 		{
 			tmpStatus = Status.force_resting;
 			removeRestriction = true;
@@ -214,6 +214,7 @@ public class MonitorService extends Service
 		
 		if (removeRestriction)
 		{
+			status = Status.halting;
 			informed = false;
 			editor.commit();
 			trimUsageTime(0);
@@ -224,31 +225,30 @@ public class MonitorService extends Service
 		{
 			this.status = Status.halting;
 		}
-		else if (getSharedPreferences(XueBaYH.VALUES, MODE_PRIVATE).getInt(XueBaYH.USAGE_TIME, 0) > MAX_USE_TIME)
+		else if(status == Status.halting)
 		{
-			this.status = Status.force_resting;
-			startTime = now + MAX_USE_TIME - getSharedPreferences(XueBaYH.VALUES, MODE_PRIVATE).getInt(XueBaYH.USAGE_TIME, 0);
-		}
-		else if ((nightEn) && (nightBegin < now) && (now <= nightEnd))
-		{
-			startTime = nightBegin;
-			this.status = Status.sleeping_night;
-			// XueBaYH.getApp().setOffLine();
-		}
-		else if ((noonEn) && (noonBegin < now) && (now <= noonEnd))
-		{
-			startTime = noonBegin;
-			this.status = Status.sleeping_noon;
-			// XueBaYH.getApp().setOffLine();
-		}
-		else if ((studyEn) && (now <= studyEnd))
-		{
-			startTime = studyBegin;
-			this.status = Status.studying;
-		}
-		else
-		{
-			this.status = Status.halting;
+			if (getSharedPreferences(XueBaYH.VALUES, MODE_PRIVATE).getInt(XueBaYH.USAGE_TIME, 0) > MAX_USE_TIME)
+			{
+				status = Status.force_resting;
+				startTime = now + MAX_USE_TIME - getSharedPreferences(XueBaYH.VALUES, MODE_PRIVATE).getInt(XueBaYH.USAGE_TIME, 0);
+			}
+			else if ((nightEn) && (nightBegin < now) && (now <= nightEnd))
+			{
+				startTime = nightBegin;
+				status = Status.sleeping_night;
+				// XueBaYH.getApp().setOffLine();
+			}
+			else if ((noonEn) && (noonBegin < now) && (now <= noonEnd))
+			{
+				startTime = noonBegin;
+				status = Status.sleeping_noon;
+				// XueBaYH.getApp().setOffLine();
+			}
+			else if ((studyEn) && (now <= studyEnd))
+			{
+				startTime = studyBegin;
+				status = Status.studying;
+			}
 		}
 		
 		// 预告即将锁定
@@ -335,6 +335,8 @@ public class MonitorService extends Service
 			editor.putString(XueBaYH.PENGDING_LOGS, sharedPreferences.getString(XueBaYH.PENGDING_LOGS, "") + string);
 			editor.commit();
 		}
+		
+		status = Status.halting;
 		
 		refreshCheckInterval();
 	}
@@ -582,8 +584,6 @@ public class MonitorService extends Service
 	
 	private long	startTime;
 	
-	// private float surfTimeValue;
-	// private long lastWrite;
 	/**
 	 * 
 	 * @return 当前活动界面不应该出现 (sleep 模式下不是restrictedActivity, study模式下不是电话, 联系人,

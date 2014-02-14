@@ -51,6 +51,7 @@ public class XueBaYH extends Application
 	protected static final boolean	myself						= true;
 	protected static final boolean	debug						= true;
 	protected static final boolean	debugSMS					= false;
+	protected static final boolean	debugRest					= false;
 	
 	protected static final String	STATE						= "state";
 	protected static final String	ACK_INTERRUTION				= "ack_interrution";
@@ -518,13 +519,27 @@ public class XueBaYH extends Application
 	protected void vibrateOK()
 	{
 		Vibrator vibrator = (Vibrator) this.getSystemService(Context.VIBRATOR_SERVICE);
-		vibrator.vibrate(new long[] { 0, 400, 400, 400, 400, 200, 200, 200, 200, 400, 400 }, -1);
+		if (debug)
+		{
+			vibrator.vibrate(new long[] { 0, 80}, -1);
+		}
+		else
+		{
+			vibrator.vibrate(new long[] { 0, 400, 400, 400, 400, 200, 200, 200, 200, 400, 400 }, -1);
+		}
 	}
 	
 	protected void vibrateOh()
 	{
 		Vibrator vibrator = (Vibrator) this.getSystemService(Context.VIBRATOR_SERVICE);
-		vibrator.vibrate(new long[] { 0, 800, 800, 800, 800, 800 }, -1);
+		if (debug)
+		{
+			vibrator.vibrate(new long[] { 0, 80}, -1);
+		}
+		else
+		{
+			vibrator.vibrate(new long[] { 0, 800, 800, 800, 800, 800 }, -1);
+		}
 	}
 	
 	protected void killBackGround()
