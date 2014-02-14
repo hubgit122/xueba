@@ -71,22 +71,23 @@ public final class R {
         public static final int normal_button=0x7f020023;
         public static final int okay=0x7f020024;
         public static final int panel_bg=0x7f020025;
-        public static final int sleeping=0x7f020026;
-        public static final int sms_embeded_text_editor_bg=0x7f020027;
-        public static final int sms_received=0x7f020028;
-        public static final int tab_bottom_bg=0x7f020029;
-        public static final int tab_bottom_bg_hover=0x7f02002a;
-        public static final int tab_bottom_icon_conv=0x7f02002b;
-        public static final int tab_bottom_icon_conv_hover=0x7f02002c;
-        public static final int tab_bottom_icon_friend=0x7f02002d;
-        public static final int tab_bottom_icon_friend_hover=0x7f02002e;
-        public static final int tab_bottom_icon_wall=0x7f02002f;
-        public static final int tab_bottom_icon_wall_hover=0x7f020030;
-        public static final int tab_letter_btn=0x7f020031;
-        public static final int toast_bg=0x7f020032;
-        public static final int toast_error=0x7f020033;
-        public static final int top_bg=0x7f020034;
-        public static final int wake_up=0x7f020035;
+        public static final int resting=0x7f020026;
+        public static final int sleeping=0x7f020027;
+        public static final int sms_embeded_text_editor_bg=0x7f020028;
+        public static final int sms_received=0x7f020029;
+        public static final int tab_bottom_bg=0x7f02002a;
+        public static final int tab_bottom_bg_hover=0x7f02002b;
+        public static final int tab_bottom_icon_conv=0x7f02002c;
+        public static final int tab_bottom_icon_conv_hover=0x7f02002d;
+        public static final int tab_bottom_icon_friend=0x7f02002e;
+        public static final int tab_bottom_icon_friend_hover=0x7f02002f;
+        public static final int tab_bottom_icon_wall=0x7f020030;
+        public static final int tab_bottom_icon_wall_hover=0x7f020031;
+        public static final int tab_letter_btn=0x7f020032;
+        public static final int toast_bg=0x7f020033;
+        public static final int toast_error=0x7f020034;
+        public static final int top_bg=0x7f020035;
+        public static final int wake_up=0x7f020036;
     }
     public static final class id {
         public static final int RelativeLayout01=0x7f080006;
@@ -129,9 +130,10 @@ public final class R {
     public static final class layout {
         public static final int main_activity=0x7f030000;
         public static final int notification=0x7f030001;
-        public static final int restricted_mode_sleeping=0x7f030002;
-        public static final int restricted_mode_studying=0x7f030003;
-        public static final int select_time=0x7f030004;
+        public static final int restricted_mode_resting=0x7f030002;
+        public static final int restricted_mode_sleeping=0x7f030003;
+        public static final int restricted_mode_studying=0x7f030004;
+        public static final int select_time=0x7f030005;
     }
     public static final class string {
         public static final int app_name=0x7f060000;

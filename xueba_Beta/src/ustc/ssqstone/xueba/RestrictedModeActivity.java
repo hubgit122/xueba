@@ -83,7 +83,11 @@ public class RestrictedModeActivity extends Activity
 	{
 		super.onCreate(savedInstanceState);
 
-		XueBaYH.getApp().killBackGround();
+		Intent intent = getIntent();
+		if (intent!=null&&intent.hasExtra(XueBaYH.RESTRICTED_MODE)&&!(intent.getStringExtra(XueBaYH.RESTRICTED_MODE).equals(MonitorService.Status.force_resting.getLocalString())))
+		{
+			XueBaYH.getApp().killBackGround();
+		}
 		XueBaYH.getApp().vibrateOh();
 		
 		initView();
@@ -202,7 +206,7 @@ public class RestrictedModeActivity extends Activity
 				toMainButton = (Button) super.findViewById(R.id.sleep_to_main_b);
 				toMainButton.setOnClickListener(onToMainListener);
 			}
-			else
+			else if (this.getIntent().getStringExtra(XueBaYH.RESTRICTED_MODE).equals(Status.studying.getLocalString()))
 			{
 				setContentView(R.layout.restricted_mode_studying);
 				denyButton = (Button) super.findViewById(R.id.deny_studying_b);
@@ -235,6 +239,10 @@ public class RestrictedModeActivity extends Activity
 					}
 				});
 			}
+			else if (this.getIntent().getStringExtra(XueBaYH.RESTRICTED_MODE).equals(Status.force_resting.getLocalString()))
+			{
+				setContentView(R.layout.restricted_mode_resting);
+			}
 		}
 	}
 	
@@ -257,7 +265,7 @@ public class RestrictedModeActivity extends Activity
 				{
 					editor.putBoolean(XueBaYH.NOON_EN, false);
 				}
-				else
+				else if (getIntent().getStringExtra(XueBaYH.RESTRICTED_MODE).equals(Status.studying.getLocalString())) 
 				{
 					editor.putBoolean(XueBaYH.STUDY_EN, false);
 				}

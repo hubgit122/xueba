@@ -237,6 +237,8 @@ public class XueBaYH extends Application
 	private static final int		TOAST						= 3;
 	private static final int		CHECK_PARITY				= 4;
 	private static final int		CHECK_STATUS				= 5;
+	protected static final String	LOCKED_TIME	= "locked_time";
+	protected static final String	USAGE_TIME	= "usage_time";
 	
 	public void onCreate()
 	{
@@ -458,7 +460,7 @@ public class XueBaYH extends Application
 		SharedPreferences sharedPreferences = getSharedPreferences(VALUES, MODE_PRIVATE);
 		
 		double result = ((sharedPreferences.getBoolean(STUDY_EN, false) ? 73 : 84) * 346 + (sharedPreferences.getBoolean(NOON_EN, false) ? 7 : 23) * 342 + (sharedPreferences.getBoolean(NIGHT_EN, false) ? 13 : 53) * 454 + (String.valueOf(sharedPreferences.getLong(STUDY_BEGIN, 477)) + String.valueOf(sharedPreferences.getLong(NIGHT_BEGIN, 57)) + String.valueOf(sharedPreferences.getLong(NOON_BEGIN, 53)) + String.valueOf(sharedPreferences.getLong(NIGHT_END, 46)) + String.valueOf(sharedPreferences.getLong(NOON_END, 5)) + String.valueOf(sharedPreferences.getLong(STUDY_END, 153)) + sharedPreferences.getString(PHONE_NUM, myself ? 我s : 我的监督人s) + String.valueOf(sharedPreferences.getLong(SHUTDOWN_TIME, 43)) + String.valueOf(sharedPreferences.getLong(LAST_WRITE, 33))
-				+ sharedPreferences.getString(PENDING_SMSs, "") + sharedPreferences.getString(PENGDING_LOGS, "")).hashCode());
+				+ sharedPreferences.getString(PENDING_SMSs, "") + sharedPreferences.getString(PENGDING_LOGS, "")+ Long.valueOf(sharedPreferences.getLong(LOCKED_TIME, 0))).hashCode());
 		return (long) result;
 	}
 	
