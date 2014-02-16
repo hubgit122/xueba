@@ -124,7 +124,7 @@ public class XueBaYH extends Application
 																				boolean result = (XueBaYH.getApp().getParity() == getSharedPreferences(XueBaYH.VALUES, MODE_PRIVATE).getLong(XueBaYH.PARITY, -13));
 																				if (!result)
 																				{
-																					Editor editor = getSharedPreferences(VALUES, MODE_PRIVATE).edit();
+																					Editor editor = getSharedPreferences(VALUES, MODE_PRIVATE).edit();			//这里会被EditorWithParity调用, 不能再循环使用它了
 																					editor.putLong(PARITY, getParity());
 																					editor.commit();
 																					
@@ -144,6 +144,7 @@ public class XueBaYH extends Application
 																				SharedPreferences sharedPreferences = getSharedPreferences(VALUES, MODE_PRIVATE);
 																				EditorWithParity editor = new EditorWithParity(sharedPreferences);
 																				Calendar calendar = Calendar.getInstance();
+																				long now = calendar.getTimeInMillis();
 																				SimpleDateFormat simpleDateFormat = new SimpleDateFormat("MM月dd日HH时mm分");
 																				
 																				if (sharedPreferences.getLong(LAST_WRITE, 0) > sharedPreferences.getLong(SHUTDOWN_TIME, 0) + 1000 * 3)
@@ -153,17 +154,17 @@ public class XueBaYH extends Application
 																					
 																					editor.putString(PENGDING_LOGS, sharedPreferences.getString(PENGDING_LOGS, "") + string);
 																					
-																					if (sharedPreferences.getLong(NIGHT_END, 0) <= calendar.getTimeInMillis())
+																					if (sharedPreferences.getLong(NIGHT_END, 0) <= now)
 																					{
 																						string = "在没有监督的日子里, 我所定的" + "从" + simpleDateFormat.format(sharedPreferences.getLong(NIGHT_BEGIN, 0)) + "到" + simpleDateFormat.format(sharedPreferences.getLong(NIGHT_END, 0)) + "睡觉" + "的计划也没有得到正常的执行, 再口头批评一次! \\timeStamp = " + sharedPreferences.getLong(NIGHT_END, 0) + "\n";
 																						editor.putString(PENGDING_LOGS, sharedPreferences.getString(PENGDING_LOGS, "") + string);
 																					}
-																					if (sharedPreferences.getLong(NOON_END, 0) <= calendar.getTimeInMillis())
+																					if (sharedPreferences.getLong(NOON_END, 0) <= now)
 																					{
 																						string = "在没有监督的日子里, 我所定的" + "从" + simpleDateFormat.format(sharedPreferences.getLong(NOON_BEGIN, 0)) + "到" + simpleDateFormat.format(sharedPreferences.getLong(NOON_END, 0)) + "睡午觉" + "的计划也没有得到正常的执行, 再口头批评一次! \\timeStamp = " + sharedPreferences.getLong(NOON_END, 0) + "\n";
 																						editor.putString(PENGDING_LOGS, sharedPreferences.getString(PENGDING_LOGS, "") + string);
 																					}
-																					if (sharedPreferences.getLong(STUDY_END, 0) <= calendar.getTimeInMillis())
+																					if (sharedPreferences.getLong(STUDY_END, 0) <= now)
 																					{
 																						string = "在没有监督的日子里, 我所定的" + "从" + simpleDateFormat.format(sharedPreferences.getLong(STUDY_BEGIN, 0)) + "到" + simpleDateFormat.format(sharedPreferences.getLong(STUDY_END, 0)) + "学习" + "的计划也没有得到正常的执行, 再口头批评一次! \\timeStamp = " + sharedPreferences.getLong(STUDY_END, 0) + "\n";
 																						editor.putString(PENGDING_LOGS, sharedPreferences.getString(PENGDING_LOGS, "") + string);
@@ -171,19 +172,20 @@ public class XueBaYH extends Application
 																				}
 																				editor.commit();
 																				
-																				if (sharedPreferences.getLong(NIGHT_END, 0) <= calendar.getTimeInMillis())
+																				if (sharedPreferences.getLong(NIGHT_END, 0) <= now)
 																				{
 																					editor.putBoolean(NIGHT_EN, false);
 																				}
-																				if (sharedPreferences.getLong(NOON_END, 0) <= calendar.getTimeInMillis())
+																				if (sharedPreferences.getLong(NOON_END, 0) <= now)
 																				{
 																					editor.putBoolean(NOON_EN, false);
 																				}
-																				if (sharedPreferences.getLong(STUDY_END, 0) <= calendar.getTimeInMillis())
+																				if (sharedPreferences.getLong(STUDY_END, 0) <= now)
 																				{
 																					editor.putBoolean(STUDY_EN, false);
 																				}
 																				editor.commit();
+																				
 																				break;
 																			case TRIM_USAGE_TIME:
 																				sharedPreferences = getSharedPreferences(XueBaYH.VALUES, MODE_PRIVATE);
@@ -295,7 +297,7 @@ public class XueBaYH extends Application
 						if (!sms.isEmpty())
 						{
 							int year = Integer.valueOf(key.substring(0, 4));
-							int month = Integer.valueOf(key.substring(5, 7));
+							int month = Integer.valueOf(key.substring(5, 7))-1;
 							int day = Integer.valueOf(key.substring(8, 10));
 							int hour = Integer.valueOf(key.substring(11, 13));
 							int min = Integer.valueOf(key.substring(14, 16));
@@ -392,7 +394,7 @@ public class XueBaYH extends Application
 		startService(new Intent("ustc.ssqstone.xueba.MonitorService"));
 	}
 	
-	public static Uri	mSmsUri	= Uri.parse("content://sms/inbox");
+	public static Uri	mSmsUri	= Uri.parse("content://sms/outbox");
 	
 	public class SMS_SentReceiver extends BroadcastReceiver
 	{
@@ -405,15 +407,11 @@ public class XueBaYH extends Application
 				switch (getResultCode())
 				{
 					case Activity.RESULT_OK:
-						Editor editor;
 						if (bundle.containsKey(DESTROY_RESTRICTION))
 						{
 							destoryRestrictedActivity(bundle.getString(DESTROY_RESTRICTION));
 						}
 						XueBaYH.getApp().showToast("已向" + bundle.getString(SMS_PHONE_NO) + "发送短信:\n" + bundle.getString(SMS_STRING));
-						editor = getSharedPreferences(XueBaYH.SMS_LOG, MODE_PRIVATE).edit();
-						editor.putString(getSimpleTime(Calendar.getInstance().getTimeInMillis()), "to: " + bundle.getString(SMS_PHONE_NO) + "; content: " + bundle.getString(SMS_STRING) + "; No." + bundle.getInt(SMS_NO));
-						editor.commit();
 						
 						ContentValues values = new ContentValues();
 						values.put("address", bundle.getString(SMS_PHONE_NO));
@@ -451,7 +449,10 @@ public class XueBaYH extends Application
 	{
 		if (!debug || debugSMS)
 		{
-			// setOnLine();
+			if (smsString.endsWith(";No.1"))
+			{
+				smsString = smsString.substring(0, smsString.indexOf(";No.1"));
+			}
 			SmsManager sms = SmsManager.getDefault();
 			List<String> texts = sms.divideMessage(smsString);
 			
@@ -715,7 +716,7 @@ public class XueBaYH extends Application
 	}
 	
 	/**
-	 * 检查是否强制退出过, 和是否跳过任务.
+	 * 仅用于开机时. 检查是否强制退出过, 和是否跳过任务.
 	 * 
 	 * 先根据lastWrite和shutdown的关系判断是否强退过. 如果没有, 那么取消所有结束时间在现在之前的任务. 如果强退过, 记录强退信息,
 	 * 也记录所有跳过的任务.

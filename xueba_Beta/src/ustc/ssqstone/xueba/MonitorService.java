@@ -214,7 +214,7 @@ public class MonitorService extends Service
 			tmpStatus = Status.sleeping_night;
 		}
 		
-		if ((this.status==Status.force_resting)&&(startTime + REST_TIME <= now))
+		if ((status==Status.force_resting)&&(startTime + REST_TIME <= now))
 		{
 			editor.putInt(XueBaYH.USAGE_TIME, 0);
 			removeRestriction = true;
@@ -238,11 +238,7 @@ public class MonitorService extends Service
 			}
 		}
 		
-		if (screenLocked)
-		{
-			this.status = Status.halting;
-		}
-		else if(status == Status.halting)
+		if(status == Status.halting)
 		{
 			if (getSharedPreferences(XueBaYH.VALUES, MODE_PRIVATE).getInt(XueBaYH.USAGE_TIME, 0) > MAX_USE_TIME)
 			{
@@ -358,6 +354,19 @@ public class MonitorService extends Service
 		status = Status.halting;
 		
 		refreshCheckInterval();
+		
+		if ((status != Status.halting)&&(startTime<now - 60*1000))				//说明中途被强退了, 不是开机恰好进入任务. 
+		{
+			if (sharedPreferences.getLong(XueBaYH.LAST_WRITE, 0) < now - 2*60*1000)					//说明退出时间超过了一分钟 因为lastWrite是一分钟写入一次
+			{
+				string = "我在自己所定的" + "从" + startTime  + "开始" + status.getLocalString() + "的计划被我中途退出, 口头批评一次! \\timeStamp = " + now + "\n";
+				editor.putString(XueBaYH.PENGDING_LOGS, sharedPreferences.getString(XueBaYH.PENGDING_LOGS, "") + string);
+			}
+			else 
+			{
+				XueBaYH.getApp().showToast("有证据表明监视任务被强行退出过, 但是退出时间很短, 这次就不追究了. 下次注意! ");
+			}
+		}
 	}
 	
 	private Status				status;
