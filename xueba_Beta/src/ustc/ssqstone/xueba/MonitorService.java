@@ -55,7 +55,7 @@ import android.view.WindowManager.LayoutParams;
  */
 public class MonitorService extends Service
 {
-	private static final int	REST_TIME	= XueBaYH.debugRest?10*1000:60*1000;
+	private static final int	REST_TIME	= XueBaYH.debugRest?20*1000:60*1000;
 	private static final int	MAX_USE_TIME	= XueBaYH.debugRest? 30*1000 : 1000 * 60 * 45;
 	private static final String	LAST_SURF_DATE	= "last surf date";
 	private static final String	SURF_TIME_OF_S	= "surf time of ";
@@ -171,31 +171,6 @@ public class MonitorService extends Service
 		createRestView();
 	}
 	
-	/**
-	 * 更新使用时间. 如果参数是负数, 根据锁屏时间计算. 如果是非负数, 采用此值. 
-	 * @param value
-	 */
-	protected void trimUsageTime(int value)
-	{
-		SharedPreferences sharedPreferences = getSharedPreferences(XueBaYH.VALUES, MODE_PRIVATE);
-			
-		if (value<0)
-		{
-			if (sharedPreferences.getLong(XueBaYH.LOCKED_TIME, 0) + 2 * 60 * 1000 < Calendar.getInstance().getTimeInMillis())
-			{
-				EditorWithParity editorWithParity = new EditorWithParity(sharedPreferences);
-				editorWithParity.putInt(XueBaYH.USAGE_TIME, 0);
-				editorWithParity.commit();
-			}
-		}
-		else 
-		{
-			EditorWithParity editorWithParity = new EditorWithParity(sharedPreferences);
-			editorWithParity.putInt(XueBaYH.USAGE_TIME, value);
-			editorWithParity.commit();
-		}
-	}
-	
 	protected void logLockedTime()
 	{
 		EditorWithParity editorWithParity = new EditorWithParity(getSharedPreferences(XueBaYH.VALUES, MODE_PRIVATE));
@@ -252,14 +227,14 @@ public class MonitorService extends Service
 			informed = false;
 			editor.commit();
 			
-			if (tmpStatus!=Status.force_resting)
+			if (tmpStatus==Status.force_resting)
 			{
-				trimUsageTime(0);
-				XueBaYH.getApp().destoryRestrictedActivity(tmpStatus.getLocalString());
+				handler.sendEmptyMessage(REMOVE_VIEW);
 			}
 			else 
 			{
-				handler.sendEmptyMessage(REMOVE_VIEW);
+				XueBaYH.getApp().trimUsageTime(0);
+				XueBaYH.getApp().destoryRestrictedActivity(tmpStatus.getLocalString());
 			}
 		}
 		
@@ -392,7 +367,7 @@ public class MonitorService extends Service
 																public void onReceive(Context context, Intent intent)
 																{
 																	screenLocked = false;
-																	trimUsageTime(-1);
+																	XueBaYH.getApp().trimUsageTime(-1);
 																	startThread(MonitorTask.class.getName());
 																}
 															};
@@ -460,7 +435,7 @@ public class MonitorService extends Service
 	 * 
 	 * @return 校验码
 	 */
-	private long surfTimeParity()
+	private long getSurfTimeParity()
 	{
 		SharedPreferences log = getSharedPreferences(SURF_TIME_LOG, MODE_PRIVATE);
 		String lastSurfDateString = log.getString(LAST_SURF_DATE, "");
@@ -654,9 +629,8 @@ public class MonitorService extends Service
 		{
 			if ("com.UCMobile com.uc.browser com.android.chrome com.android.browser com.dolphin.browser.xf com.tencent.mtt sogou.mobile.explorer com.baidu.browser.apps com.oupeng.mini.android ".contains(packageName))
 			{
-				// 应该给浏览器计时了. 先看是不是到了新的一天.
 				SharedPreferences log = getSharedPreferences(SURF_TIME_LOG, MODE_PRIVATE);
-				if (log.getLong(XueBaYH.PARITY, 0) != surfTimeParity())
+				if (log.getLong(XueBaYH.PARITY, 0) != getSurfTimeParity())
 				{
 					Message message = new Message();
 					message.what = SMS;
@@ -671,7 +645,7 @@ public class MonitorService extends Service
 				logEditor.putString(LAST_SURF_DATE, XueBaYH.getSimpleDate(Calendar.getInstance().getTimeInMillis()));
 				logEditor.putFloat(surfTimeIndexString, surfTimeValue);
 				logEditor.commit();
-				logEditor.putLong(XueBaYH.PARITY, surfTimeParity());
+				logEditor.putLong(XueBaYH.PARITY, getSurfTimeParity());
 				logEditor.commit();
 				
 				if ((surfTimeValue >= 1800) && (surfTimeValue < 3600) && ((int) surfTimeValue % 180 == 0))
@@ -760,7 +734,7 @@ public class MonitorService extends Service
 		myFV.setImageResource(R.drawable.resting);
 		wm = (WindowManager) getApplicationContext().getSystemService("window");
 		
-		screenWidth = wm.getDefaultDisplay().getWidth();//屏幕宽度  
+		screenWidth = wm.getDefaultDisplay().getWidth();
 		screenHeight = wm.getDefaultDisplay().getHeight();  
 		
 		wmParams = new WindowManager.LayoutParams();
@@ -780,7 +754,7 @@ public class MonitorService extends Service
 		wmParams.width = WindowManager.LayoutParams.FILL_PARENT;
 		wmParams.height = WindowManager.LayoutParams.FILL_PARENT;
 		
-		wmParams.alpha = 0.8f;
+		wmParams.alpha = 0.95f;
 	}
 	// private Notification updateNotification()
 	// {

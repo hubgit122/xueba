@@ -77,7 +77,6 @@
                         android:textIsSelectable="false"
                         android:textSize="15sp"
                         android:width="150dp" />
-
                 </RelativeLayout>
 
                 <RelativeLayout
@@ -112,77 +111,73 @@
                         android:textIsSelectable="false"
                         android:textSize="15sp"
                         android:width="150dp" />
-
                 </RelativeLayout>
 
-			<RelativeLayout
-			    android:id="@+id/RelativeLayout02"
-			    android:layout_width="wrap_content"
-			    android:layout_height="55dip"
-			    android:layout_alignParentLeft="true"
-			    android:layout_alignParentRight="true"
-			    android:layout_below="@+id/RelativeLayout01"
-			    android:background="@drawable/normal_button"
-			    android:gravity="top"
-			    android:paddingLeft="10dip"
-			    android:paddingTop="15dip" >
+                <RelativeLayout
+                    android:id="@+id/RelativeLayout02"
+                    android:layout_width="wrap_content"
+                    android:layout_height="55dip"
+                    android:layout_alignParentLeft="true"
+                    android:layout_alignParentRight="true"
+                    android:layout_below="@+id/RelativeLayout01"
+                    android:background="@drawable/normal_button"
+                    android:gravity="top"
+                    android:paddingLeft="10dip"
+                    android:paddingTop="15dip" >
 
-			    <CheckBox
-			        android:id="@+id/study_cb"
-			        android:layout_width="wrap_content"
-			        android:layout_height="fill_parent"
-			        android:layout_alignParentLeft="true"
-			        android:layout_centerVertical="true"
-			        android:text="@string/force_study" />
+                    <CheckBox
+                        android:id="@+id/study_cb"
+                        android:layout_width="wrap_content"
+                        android:layout_height="fill_parent"
+                        android:layout_alignParentLeft="true"
+                        android:layout_centerVertical="true"
+                        android:text="@string/force_study" />
 
-			    <TextView
-			        android:id="@+id/study_tv"
-			        style="@style/iTextView"
-			        android:layout_width="150dp"
-			        android:layout_height="wrap_content"
-			        android:layout_alignBaseline="@+id/study_cb"
-			        android:layout_alignBottom="@+id/study_cb"
-			        android:layout_alignParentRight="true"
-			        android:layout_marginLeft="20dp"
-			        android:textIsSelectable="false"
-			        android:textSize="15sp"
-			        android:width="100dp" />
+                    <TextView
+                        android:id="@+id/study_tv"
+                        style="@style/iTextView"
+                        android:layout_width="150dp"
+                        android:layout_height="wrap_content"
+                        android:layout_alignBaseline="@+id/study_cb"
+                        android:layout_alignBottom="@+id/study_cb"
+                        android:layout_alignParentRight="true"
+                        android:layout_marginLeft="20dp"
+                        android:textIsSelectable="false"
+                        android:textSize="15sp"
+                        android:width="100dp" />
+                </RelativeLayout>
 
-			</RelativeLayout>
+                <RelativeLayout
+                    android:id="@+id/RelativeLayout03"
+                    android:layout_width="wrap_content"
+                    android:layout_height="55dip"
+                    android:layout_alignParentBottom="true"
+                    android:layout_alignParentLeft="true"
+                    android:layout_alignParentRight="true"
+                    android:background="@drawable/normal_button"
+                    android:paddingLeft="10dip"
+                    android:paddingTop="15dip" >
 
-			<RelativeLayout
-			    android:id="@+id/RelativeLayout03"
-			    android:layout_width="wrap_content"
-			    android:layout_height="55dip"
-			    android:layout_alignParentBottom="true"
-			    android:layout_alignParentLeft="true"
-			    android:layout_alignParentRight="true"
-			    android:background="@drawable/normal_button"
-			    android:paddingLeft="10dip"
-			    android:paddingTop="15dip" >
+                    <TextView
+                        android:id="@+id/to_whom_tv"
+                        android:layout_width="wrap_content"
+                        android:layout_height="fill_parent"
+                        android:layout_alignParentLeft="true"
+                        android:text="@string/to_whom"
+                        android:textSize="17sp" />
 
-			    <TextView
-			        android:id="@+id/to_whom_tv"
-			        android:layout_width="wrap_content"
-			        android:layout_height="fill_parent"
-			        android:layout_alignParentLeft="true"
-			        android:text="@string/to_whom"
-			        android:textSize="17sp" />
-
-			    <TextView
-			        android:id="@+id/phone_tv"
-			        style="@style/iTextView"
-			        android:layout_width="wrap_content"
-			        android:layout_height="wrap_content"
-			        android:layout_alignParentRight="true"
-			        android:layout_marginLeft="15dp"
-			        android:layout_marginRight="5dp"
-			        android:textIsSelectable="false"
-			        android:autoLink = "none"
-			        android:width="150dp" />
-
-			</RelativeLayout>
-
+                    <TextView
+                        android:id="@+id/phone_tv"
+                        style="@style/iTextView"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_alignParentRight="true"
+                        android:layout_marginLeft="15dp"
+                        android:layout_marginRight="5dp"
+                        android:autoLink="none"
+                        android:textIsSelectable="false"
+                        android:width="150dp" />
+                </RelativeLayout>
             </RelativeLayout>
         </ScrollView>
 
@@ -192,13 +187,45 @@
             android:layout_height="40dip"
             android:layout_alignParentBottom="true"
             android:layout_alignParentRight="true"
-            android:layout_marginBottom="42dp"
-            android:layout_marginRight="30dp"
+            android:layout_marginBottom="34dp"
+            android:layout_marginRight="16dp"
             android:background="@drawable/button"
             android:minWidth="80dip"
             android:paddingLeft="15dp"
             android:paddingRight="15dp"
             android:text="@string/confirm"
+            android:textColor="#fff"
+            android:textSize="18sp" />
+
+        <Button
+            android:id="@+id/log_out_b"
+            android:layout_width="wrap_content"
+            android:layout_height="40dip"
+            android:layout_alignParentLeft="true"
+            android:layout_below="@+id/scrollView_time"
+            android:layout_marginLeft="66dp"
+            android:layout_marginTop="34dp"
+            android:background="@drawable/button"
+            android:minWidth="80dip"
+            android:paddingLeft="15dp"
+            android:paddingRight="15dp"
+            android:text="@string/logout"
+            android:textColor="#fff"
+            android:textSize="18sp" />
+
+        <Button
+            android:id="@+id/send_status_b"
+            android:layout_width="wrap_content"
+            android:layout_height="40dip"
+            android:layout_alignLeft="@+id/log_out_b"
+            android:layout_alignRight="@+id/log_out_b"
+            android:layout_below="@+id/log_out_b"
+            android:layout_marginTop="10dp"
+            android:background="@drawable/button"
+            android:minWidth="80dip"
+            android:paddingLeft="15dp"
+            android:paddingRight="15dp"
+            android:text="@string/send_status"
             android:textColor="#fff"
             android:textSize="18sp" />
 

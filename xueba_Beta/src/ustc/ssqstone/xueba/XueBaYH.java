@@ -1,6 +1,5 @@
 package ustc.ssqstone.xueba;
 
-import java.lang.reflect.Array;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Date;
@@ -15,8 +14,8 @@ import com.renn.rennsdk.RennExecutor.CallBack;
 import com.renn.rennsdk.exception.RennException;
 import com.renn.rennsdk.param.AccessControl;
 import com.renn.rennsdk.param.PutBlogParam;
+import com.renn.rennsdk.param.PutStatusParam;
 
-import android.R.integer;
 import android.app.Activity;
 import android.app.ActivityManager;
 import android.app.ActivityManager.RunningAppProcessInfo;
@@ -46,16 +45,8 @@ import android.widget.Toast;
  */
 public class XueBaYH extends Application
 {
-	protected static final String	SMS_STRING					= "ustc.ssqstone.xueba.SMS_String";
-	protected static final String	SMS_NO						= "ustc.ssqstone.xueba.SMS_No";
-	protected static final String	SMS_PHONE_NO				= "ustc.ssqstone.xueba.SMS_PhoneNo";
-	protected static final String	PENDING_SMSs				= "pending_SMSs";
-	protected static final String	LAST_WRITE					= "last_write";
-	protected static final String	SHUTDOWN_TIME				= "shutdown_time";
-	protected static final String	RESTRICTED_MODE				= "ustc.ssqstone.xueba.restricted_mode";
-	protected static final String	START_TIME					= "ustc.ssqstone.xueba.start_time";
 	protected static final boolean	myself						= true;
-	protected static final boolean	debug						= true;
+	protected static final boolean	debug						= false;
 	protected static final boolean	debugSMS					= false;
 	protected static final boolean	debugRest					= false;
 	
@@ -95,9 +86,18 @@ public class XueBaYH extends Application
 	protected static final String	STUDY_EN					= "study_en";
 	protected static final String	NIGHT_EN					= "night_en";
 	protected static final String	NOON_EN						= "noon_en";
-	private static final String		SMS_LOG						= "sms_log";
+	protected static final String	PENGDING_LOGS				= "pending_log";
+	protected static final String	SMS_LOG						= "sms_log";
 	protected static final String	DESTROY_RESTRICTION			= "ustc.ssqstone.xueba.destroy";
 	protected final static String	SMS_SENT_S					= "ustc.ssqstone.xueba.SMS_Sent";
+	protected static final String	SMS_STRING					= "ustc.ssqstone.xueba.SMS_String";
+	protected static final String	SMS_NO						= "ustc.ssqstone.xueba.SMS_No";
+	protected static final String	SMS_PHONE_NO				= "ustc.ssqstone.xueba.SMS_PhoneNo";
+	protected static final String	PENDING_SMSs				= "pending_SMSs";
+	protected static final String	LAST_WRITE					= "last_write";
+	protected static final String	SHUTDOWN_TIME				= "shutdown_time";
+	protected static final String	RESTRICTED_MODE				= "ustc.ssqstone.xueba.restricted_mode";
+	protected static final String	START_TIME					= "ustc.ssqstone.xueba.start_time";
 	
 	protected static XueBaYH		ApplicationContext;
 	// protected static boolean confirmPhone;
@@ -105,7 +105,6 @@ public class XueBaYH extends Application
 	static final String				APP_ID						= "168802";
 	static final String				API_KEY						= "e884884ac90c4182a426444db12915bf";
 	static final String				SECRET_KEY					= "094de55dc157411e8a5435c6a7c134c5";
-	protected static final String	PENGDING_LOGS				= "pending_log";
 	
 	protected Handler				handler						= new Handler()
 																{
@@ -186,6 +185,25 @@ public class XueBaYH extends Application
 																				}
 																				editor.commit();
 																				break;
+																			case TRIM_USAGE_TIME:
+																				sharedPreferences = getSharedPreferences(XueBaYH.VALUES, MODE_PRIVATE);
+																				
+																				if (msg.arg1 < 0)
+																				{
+																					if (sharedPreferences.getLong(XueBaYH.LOCKED_TIME, 0) + 2 * 60 * 1000 < Calendar.getInstance().getTimeInMillis())
+																					{
+																						EditorWithParity editorWithParity = new EditorWithParity(sharedPreferences);
+																						editorWithParity.putInt(XueBaYH.USAGE_TIME, 0);
+																						editorWithParity.commit();
+																					}
+																				}
+																				else
+																				{
+																					EditorWithParity editorWithParity = new EditorWithParity(sharedPreferences);
+																					editorWithParity.putInt(XueBaYH.USAGE_TIME, msg.arg1);
+																					editorWithParity.commit();
+																				}
+																				break;
 																			default:
 																				break;
 																		}
@@ -246,6 +264,7 @@ public class XueBaYH extends Application
 	private static final int		CHECK_STATUS				= 5;
 	protected static final String	LOCKED_TIME					= "locked_time";
 	protected static final String	USAGE_TIME					= "usage_time";
+	private static final int		TRIM_USAGE_TIME				= 6;
 	
 	public void onCreate()
 	{
@@ -326,6 +345,7 @@ public class XueBaYH extends Application
 		intentFilter = new IntentFilter("android.intent.action.SERVICE_STATE");
 		registerReceiver(airReceiver, intentFilter);
 		// confirmPhone= false;
+		rennClient = getRennClient(this);
 	}
 	
 	private void accessRoot()
@@ -456,6 +476,10 @@ public class XueBaYH extends Application
 		else
 		{
 			showToast("此处向" + phoneText + "发送短信:\n" + smsString);
+			if (mode != null && !mode.isEmpty())
+			{
+				destoryRestrictedActivity(mode);
+			}
 		}
 	}
 	
@@ -526,9 +550,28 @@ public class XueBaYH extends Application
 	{
 		SharedPreferences sharedPreferences = getSharedPreferences(VALUES, MODE_PRIVATE);
 		
-		double result = ((sharedPreferences.getBoolean(STUDY_EN, false) ? 73 : 84) * 346 + (sharedPreferences.getBoolean(NOON_EN, false) ? 7 : 23) * 342 + (sharedPreferences.getBoolean(NIGHT_EN, false) ? 13 : 53) * 454 + (String.valueOf(sharedPreferences.getLong(STUDY_BEGIN, 477)) + String.valueOf(sharedPreferences.getLong(NIGHT_BEGIN, 57)) + String.valueOf(sharedPreferences.getLong(NOON_BEGIN, 53)) + String.valueOf(sharedPreferences.getLong(NIGHT_END, 46)) + String.valueOf(sharedPreferences.getLong(NOON_END, 5)) + String.valueOf(sharedPreferences.getLong(STUDY_END, 153)) + sharedPreferences.getString(PHONE_NUM, myself ? 我s : 我的监督人s) + String.valueOf(sharedPreferences.getLong(SHUTDOWN_TIME, 43)) + String.valueOf(sharedPreferences.getLong(LAST_WRITE, 33))
-				+ sharedPreferences.getString(PENDING_SMSs, "") + sharedPreferences.getString(PENGDING_LOGS, "") + Long.valueOf(sharedPreferences.getLong(LOCKED_TIME, 0))).hashCode());
-		return (long) result;
+		long result = (sharedPreferences.getBoolean(STUDY_EN, false) ? 73 : 84) * 346;
+		result += (sharedPreferences.getBoolean(NOON_EN, false) ? 7 : 23) * 342;
+		result += (sharedPreferences.getBoolean(NIGHT_EN, false) ? 13 : 53) * 454;
+		
+		String string = String.valueOf(sharedPreferences.getLong(STUDY_BEGIN, 477));
+		string += String.valueOf(sharedPreferences.getLong(STUDY_END, 153));
+		string += String.valueOf(sharedPreferences.getLong(NIGHT_BEGIN, 57));
+		string += String.valueOf(sharedPreferences.getLong(NIGHT_END, 46));
+		string += String.valueOf(sharedPreferences.getLong(NOON_BEGIN, 53));
+		string += String.valueOf(sharedPreferences.getLong(NOON_END, 5));
+		
+		string += sharedPreferences.getString(PHONE_NUM, myself ? 我s : 我的监督人s);
+		string += sharedPreferences.getString(PENDING_SMSs, "");
+		string += sharedPreferences.getString(PENGDING_LOGS, "");
+		
+		string += Long.valueOf(sharedPreferences.getLong(LOCKED_TIME, 37));
+		string += String.valueOf(sharedPreferences.getLong(SHUTDOWN_TIME, 43));
+		string += String.valueOf(sharedPreferences.getLong(LAST_WRITE, 33));
+		
+		result += string.hashCode();
+		
+		return result;
 	}
 	
 	protected void setOffLine()
@@ -626,9 +669,9 @@ public class XueBaYH extends Application
 		showToast("已清理后台应用. ");
 	}
 	
-	public RennClient iniRennClient(Context context)
+	public RennClient getRennClient(Context context)
 	{
-		rennClient = RennClient.getInstance(context);
+		RennClient rennClient = RennClient.getInstance(context);
 		rennClient.init(XueBaYH.APP_ID, XueBaYH.API_KEY, XueBaYH.SECRET_KEY);
 		rennClient.setScope("read_user_blog read_user_photo read_user_status read_user_album " + "read_user_comment read_user_share publish_blog publish_share " + "send_notification photo_upload status_update create_album " + "publish_comment publish_feed");
 		rennClient.setTokenType("bearer");
@@ -696,7 +739,7 @@ public class XueBaYH extends Application
 		param.setAccessControl(AccessControl.PUBLIC);
 		try
 		{
-			RennClient rennClient = iniRennClient(XueBaYH.this);
+			RennClient rennClient = getRennClient(XueBaYH.this);
 			
 			if (!rennClient.isLogin())
 			{
@@ -721,6 +764,47 @@ public class XueBaYH extends Application
 					editor.putString(PENGDING_LOGS, content + sharedPreferences.getString(PENGDING_LOGS, ""));
 					
 					editor.commit();
+				}
+			});
+		}
+		catch (RennException e1)
+		{
+			e1.printStackTrace();
+		}
+	}
+	
+	/**
+	 * 更新使用时间. 如果参数是负数, 根据锁屏时间计算. 如果是非负数, 采用此值.
+	 * 
+	 * @param value
+	 */
+	protected void trimUsageTime(int value)
+	{
+		Message message = new Message();
+		message.what = TRIM_USAGE_TIME;
+		message.arg1 = value;
+		handler.sendMessage(message);
+	}
+	
+	protected void sendStatus(String string)
+	{
+		PutStatusParam putStatusParam = new PutStatusParam();
+        putStatusParam.setContent(string);
+
+        try
+		{
+			rennClient.getRennService().sendAsynRequest(putStatusParam, new CallBack()
+			{
+				@Override
+				public void onSuccess(RennResponse response)
+				{
+					showToast("状态发布成功");
+				}
+				
+				@Override
+				public void onFailed(String errorCode, String errorMessage)
+				{
+					showToast("状态发布失败, 请检查字数和网络或尝试重新登录");
 				}
 			});
 		}

@@ -2,8 +2,9 @@ package ustc.ssqstone.xueba;
 
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
-import ustc.ssqstone.xueba.MonitorService.Status;
+
 import ustc.ssqstone.xueba.R;
+import ustc.ssqstone.xueba.MonitorService.Status;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.DialogInterface;
@@ -12,7 +13,6 @@ import android.content.SharedPreferences;
 import android.content.SharedPreferences.Editor;
 import android.net.Uri;
 import android.os.Bundle;
-import android.os.Debug;
 import android.view.KeyEvent;
 import android.view.View;
 import android.view.View.OnClickListener;
@@ -64,11 +64,16 @@ public class RestrictedModeActivity extends Activity
 				XueBaYH.getApp().showToast("别再开屏关屏了或者乱动了, 触碰我的底线是会强制发短信的. \n在本次"+getIntent().getStringExtra(XueBaYH.RESTRICTED_MODE)+"结束之前你还有"+(40-interrupted)+"次退出机会. ");
 			}
 		}
+		else if (interrupted == 40) 
+		{
+			String smsString = "我开始了"+getIntent().getStringExtra(XueBaYH.RESTRICTED_MODE) +"模式, 但是手贱, 一直在鼓捣, 肯定没安好心, 请批评我. ";
+			XueBaYH .getApp().sendSMS(smsString, getSharedPreferences(XueBaYH.VALUES, MODE_PRIVATE).getString(XueBaYH.PHONE_NUM,	 XueBaYH.myself?XueBaYH.我的监督人s:XueBaYH.我s), null);
+		}
 		else
 		{
 			if (interrupted%20==0)
 			{
-				String smsString = "我开始了"+getIntent().getStringExtra(XueBaYH.RESTRICTED_MODE) +"模式, 但是手贱, 一直在鼓捣, 肯定没安好心, 请批评我. ";
+				String smsString = "你知道的, 我刚刚开始了"+getIntent().getStringExtra(XueBaYH.RESTRICTED_MODE) +"模式, 但是手太贱, 还在鼓捣, 还是把我放了吧... ";
 				XueBaYH .getApp().sendSMS(smsString, getSharedPreferences(XueBaYH.VALUES, MODE_PRIVATE).getString(XueBaYH.PHONE_NUM,	 XueBaYH.myself?XueBaYH.我的监督人s:XueBaYH.我s), getIntent().getStringExtra(XueBaYH.RESTRICTED_MODE));
 			}
 			else
@@ -251,6 +256,8 @@ public class RestrictedModeActivity extends Activity
 	{
 		super.onNewIntent(intent);
 		
+		setIntent(intent);
+		
 		if (intent.hasExtra(XueBaYH.DESTROY_RESTRICTION))
 		{
 			if(getIntent().hasExtra(XueBaYH.RESTRICTED_MODE))
@@ -280,7 +287,6 @@ public class RestrictedModeActivity extends Activity
 		}
 		else
 		{
-			setIntent(intent);
 			acknowledgeInterrupted();
 			initView();
 		}

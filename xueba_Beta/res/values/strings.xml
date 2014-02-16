@@ -16,5 +16,7 @@
     <string name="sms">短信</string>
     <string name="to_main">回主菜单</string>
     <string name="view_log">查看学习履历</string>
+    <string name="logout">注销人人</string>
+    <string name="send_status">发状态</string>
 	
 </resources>

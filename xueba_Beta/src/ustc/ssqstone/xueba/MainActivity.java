@@ -2,33 +2,22 @@ package ustc.ssqstone.xueba;
 
 import java.util.Calendar;
 
-import com.renn.rennsdk.RennClient;
-import com.renn.rennsdk.RennResponse;
-import com.renn.rennsdk.RennClient.LoginListener;
-import com.renn.rennsdk.RennExecutor.CallBack;
-import com.renn.rennsdk.exception.RennException;
-import com.renn.rennsdk.param.AccessControl;
-import com.renn.rennsdk.param.PutBlogParam;
+import ustc.ssqstone.xueba.R;
 
-import android.R.layout;
-import android.annotation.SuppressLint;
+import com.renn.rennsdk.RennClient;
+import com.renn.rennsdk.RennClient.LoginListener;
 import android.app.Activity;
 import android.app.AlertDialog;
-import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
-import android.graphics.PixelFormat;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
-import android.view.Gravity;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.View;
-import android.view.WindowManager;
 import android.view.View.OnClickListener;
-import android.view.WindowManager.LayoutParams;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.CheckBox;
@@ -65,6 +54,8 @@ public class MainActivity extends Activity
 	private TextView			nightSleepTV;
 	private TextView			startStudyTV;
 	private Button				okButton;
+	private Button				logoutButton;
+	private Button				sendStatusButton;
 	// private EditText phoneText;
 	private TextView			phoneTV;
 	private TextView			toWhomTV;
@@ -168,7 +159,7 @@ public class MainActivity extends Activity
 		
 		initingData = false;
 	}
-
+	
 	/**
 	 * 将内存中的数据所代表的时间修正; 修正算法都是一样的: ; 如果被修正时间段结束时间大于开始时间 (则可以位于同一天), 则修正为未来最近的一天;
 	 * 否则跨越了两天. 如果当前时间点位于时间段内, 修正为最近的两天, 否则修正为今明两天.
@@ -332,6 +323,54 @@ public class MainActivity extends Activity
 		
 		okButton = (Button) findViewById(R.id.setting_ok_b);
 		okButton.setOnClickListener(onSettingOKClickListener);
+		
+		logoutButton = (Button) findViewById(R.id.log_out_b);
+		logoutButton.setOnClickListener(new OnClickListener()
+		{
+			@Override
+			public void onClick(View v)
+			{
+				RennClient rennClient = XueBaYH.getApp().getRennClient(MainActivity.this);
+				rennClient.logout();
+				XueBaYH.getApp().showToast("成功注销");
+			}
+		});
+		
+		sendStatusButton = (Button) findViewById(R.id.send_status_b);
+		sendStatusButton.setOnClickListener(new OnClickListener()
+		{
+			@Override
+			public void onClick(View v)
+			{
+				RennClient rennClient = XueBaYH.getApp().getRennClient(MainActivity.this);
+				if (!rennClient.isLogin())
+				{
+					return;
+				}
+				
+				AlertDialog.Builder builder;
+				final EditText editText = new EditText(MainActivity.this);
+				
+				builder = new AlertDialog.Builder(MainActivity.this).setTitle("发状态").setMessage("您已经登录, 请写入发送状态的内容. ").setIcon(android.R.drawable.ic_dialog_info).setView(editText).setPositiveButton("确定", new DialogInterface.OnClickListener()
+				{
+					@Override
+					public void onClick(DialogInterface dialog, int which)
+					{
+						XueBaYH.getApp().sendStatus(editText.getText().toString());
+						dialog.dismiss();
+					}
+				}).setNegativeButton("取消", new DialogInterface.OnClickListener()
+				{
+					@Override
+					public void onClick(DialogInterface dialog, int which)
+					{
+						dialog.dismiss();
+					}
+				});
+				
+				builder.create().show();
+			}
+		});
 		
 		// phoneText = (EditText) findViewById(R.id.phoneNum_et);
 		phoneTV = (TextView) findViewById(R.id.phone_tv);
@@ -667,7 +706,7 @@ public class MainActivity extends Activity
 																			case R.id.setting_ok_b:
 																				if (saveData())
 																				{
-																					RennClient rennClient = XueBaYH.getApp().iniRennClient(MainActivity.this);
+																					RennClient rennClient = XueBaYH.getApp().getRennClient(MainActivity.this);
 																					
 																					if (!rennClient.isLogin())
 																					{
@@ -794,10 +833,8 @@ public class MainActivity extends Activity
 		
 		trimData();
 		
-		result = (phoneTV.getText().toString().matches("1[0-9]+")
-					&& (((noonCB.isChecked() && studyCB.isChecked()) ? ((studyEnd <= noonBegin) || (Calendar.getInstance().getTimeInMillis() >= noonEnd)) : true) && ((nightCB.isChecked() && studyCB.isChecked()) ? ((studyEnd <= nightBegin) || (Calendar.getInstance().getTimeInMillis() >= nightEnd)) : true) && ((noonCB.isChecked() && nightCB.isChecked()) ? ((noonEnd <= nightBegin) || (noonBegin >= nightEnd)) : true))
-					&& ((sharedPreferences.getBoolean(XueBaYH.NOON_EN, false) ? noonCB.isChecked() : true) && (sharedPreferences.getBoolean(XueBaYH.NIGHT_EN, false) ? nightCB.isChecked() : true) && (sharedPreferences.getBoolean(XueBaYH.STUDY_EN, false) ? studyCB.isChecked() : true))
-					&& (((noonCB.isChecked() && sharedPreferences.getBoolean(XueBaYH.NOON_EN, false)) ? ((noonEnd >= sharedPreferences.getLong(XueBaYH.NOON_END, 0)) && (noonBegin <= sharedPreferences.getLong(XueBaYH.NOON_BEGIN, 0))) : true) && ((nightCB.isChecked() && sharedPreferences.getBoolean(XueBaYH.NIGHT_EN, false)) ? ((nightEnd >= sharedPreferences.getLong(XueBaYH.NIGHT_END, 0)) && (nightBegin <= sharedPreferences.getLong(XueBaYH.NIGHT_BEGIN, 0))) : true) && ((studyCB.isChecked() && sharedPreferences.getBoolean(XueBaYH.STUDY_EN, false)) ? (studyEnd >= sharedPreferences.getLong(XueBaYH.STUDY_END, 0)) : true)));
+		result = (phoneTV.getText().toString().matches("1[0-9]+") && (((noonCB.isChecked() && studyCB.isChecked()) ? ((studyEnd <= noonBegin) || (Calendar.getInstance().getTimeInMillis() >= noonEnd)) : true) && ((nightCB.isChecked() && studyCB.isChecked()) ? ((studyEnd <= nightBegin) || (Calendar.getInstance().getTimeInMillis() >= nightEnd)) : true) && ((noonCB.isChecked() && nightCB.isChecked()) ? ((noonEnd <= nightBegin) || (noonBegin >= nightEnd)) : true)) && ((sharedPreferences.getBoolean(XueBaYH.NOON_EN, false) ? noonCB.isChecked() : true) && (sharedPreferences.getBoolean(XueBaYH.NIGHT_EN, false) ? nightCB.isChecked() : true) && (sharedPreferences.getBoolean(XueBaYH.STUDY_EN, false) ? studyCB.isChecked() : true)) && (((noonCB.isChecked() && sharedPreferences.getBoolean(
+				XueBaYH.NOON_EN, false)) ? ((noonEnd >= sharedPreferences.getLong(XueBaYH.NOON_END, 0)) && (noonBegin <= sharedPreferences.getLong(XueBaYH.NOON_BEGIN, 0))) : true) && ((nightCB.isChecked() && sharedPreferences.getBoolean(XueBaYH.NIGHT_EN, false)) ? ((nightEnd >= sharedPreferences.getLong(XueBaYH.NIGHT_END, 0)) && (nightBegin <= sharedPreferences.getLong(XueBaYH.NIGHT_BEGIN, 0))) : true) && ((studyCB.isChecked() && sharedPreferences.getBoolean(XueBaYH.STUDY_EN, false)) ? (studyEnd >= sharedPreferences.getLong(XueBaYH.STUDY_END, 0)) : true)));
 		
 		if (result)
 		{
@@ -946,6 +983,5 @@ public class MainActivity extends Activity
 	// XueBaYH.getApp().restartMonitorService();
 	// super.onPause();
 	// }
-
-
+	
 }
