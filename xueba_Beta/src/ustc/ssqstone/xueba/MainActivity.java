@@ -6,6 +6,7 @@ import ustc.ssqstone.xueba.R;
 
 import com.renn.rennsdk.RennClient;
 import com.renn.rennsdk.RennClient.LoginListener;
+import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.DialogInterface;
@@ -327,14 +328,19 @@ public class MainActivity extends Activity
 		logoutButton = (Button) findViewById(R.id.log_out_b);
 		logoutButton.setOnClickListener(new OnClickListener()
 		{
+			@SuppressLint("NewApi")
 			@Override
 			public void onClick(View v)
 			{
-				RennClient rennClient = XueBaYH.getApp().getRennClient(MainActivity.this);
+				RennClient rennClient = XueBaYH.getApp().getRennClient();
 				rennClient.logout();
 				XueBaYH.getApp().showToast("成功注销");
+				logoutButton.setVisibility(View.GONE);
+				sendStatusButton.setVisibility(View.GONE);
 			}
 		});
+		
+		logoutButton.setVisibility(XueBaYH.getApp().getRennClient().isLogin()?View.VISIBLE:View.GONE);
 		
 		sendStatusButton = (Button) findViewById(R.id.send_status_b);
 		sendStatusButton.setOnClickListener(new OnClickListener()
@@ -342,7 +348,7 @@ public class MainActivity extends Activity
 			@Override
 			public void onClick(View v)
 			{
-				RennClient rennClient = XueBaYH.getApp().getRennClient(MainActivity.this);
+				RennClient rennClient = XueBaYH.getApp().getRennClient();
 				if (!rennClient.isLogin())
 				{
 					return;
@@ -706,7 +712,7 @@ public class MainActivity extends Activity
 																			case R.id.setting_ok_b:
 																				if (saveData())
 																				{
-																					RennClient rennClient = XueBaYH.getApp().getRennClient(MainActivity.this);
+																					RennClient rennClient = XueBaYH.getApp().getRennClient();
 																					
 																					if (!rennClient.isLogin())
 																					{

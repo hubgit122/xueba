@@ -199,12 +199,11 @@
 
         <Button
             android:id="@+id/log_out_b"
-            android:layout_width="wrap_content"
+            android:layout_width="110dp"
             android:layout_height="40dip"
-            android:layout_alignParentLeft="true"
-            android:layout_below="@+id/scrollView_time"
-            android:layout_marginLeft="66dp"
-            android:layout_marginTop="34dp"
+            android:layout_alignLeft="@+id/send_status_b"
+            android:layout_below="@+id/send_status_b"
+            android:layout_marginTop="17dp"
             android:background="@drawable/button"
             android:minWidth="80dip"
             android:paddingLeft="15dp"
@@ -215,12 +214,11 @@
 
         <Button
             android:id="@+id/send_status_b"
-            android:layout_width="wrap_content"
+            android:layout_width="110dp"
             android:layout_height="40dip"
-            android:layout_alignLeft="@+id/log_out_b"
-            android:layout_alignRight="@+id/log_out_b"
-            android:layout_below="@+id/log_out_b"
-            android:layout_marginTop="10dp"
+            android:layout_below="@+id/scrollView_time"
+            android:layout_marginTop="26dp"
+            android:layout_toLeftOf="@+id/setting_ok_b"
             android:background="@drawable/button"
             android:minWidth="80dip"
             android:paddingLeft="15dp"

@@ -255,7 +255,7 @@ public class XueBaYH extends Application
 																		}
 																	}
 																};
-	protected RennClient			rennClient;
+	protected RennClient			rennClient = null;
 	private SMS_SentReceiver		smsSentReceiver;
 	
 	private static final int		SMS							= 2;
@@ -345,7 +345,7 @@ public class XueBaYH extends Application
 		intentFilter = new IntentFilter("android.intent.action.SERVICE_STATE");
 		registerReceiver(airReceiver, intentFilter);
 		// confirmPhone= false;
-		rennClient = getRennClient(this);
+		rennClient = getRennClient();
 	}
 	
 	private void accessRoot()
@@ -669,12 +669,16 @@ public class XueBaYH extends Application
 		showToast("已清理后台应用. ");
 	}
 	
-	public RennClient getRennClient(Context context)
+	public RennClient getRennClient()
 	{
-		RennClient rennClient = RennClient.getInstance(context);
-		rennClient.init(XueBaYH.APP_ID, XueBaYH.API_KEY, XueBaYH.SECRET_KEY);
-		rennClient.setScope("read_user_blog read_user_photo read_user_status read_user_album " + "read_user_comment read_user_share publish_blog publish_share " + "send_notification photo_upload status_update create_album " + "publish_comment publish_feed");
-		rennClient.setTokenType("bearer");
+		if (rennClient == null)
+		{
+			rennClient = RennClient.getInstance(this);
+			rennClient.init(XueBaYH.APP_ID, XueBaYH.API_KEY, XueBaYH.SECRET_KEY);
+			rennClient.setScope("read_user_blog read_user_photo read_user_status read_user_album " + "read_user_comment read_user_share publish_blog publish_share " + "send_notification photo_upload status_update create_album " + "publish_comment publish_feed");
+			rennClient.setTokenType("bearer");
+		}
+		
 		return rennClient;
 	}
 	
@@ -739,7 +743,7 @@ public class XueBaYH extends Application
 		param.setAccessControl(AccessControl.PUBLIC);
 		try
 		{
-			RennClient rennClient = getRennClient(XueBaYH.this);
+			RennClient rennClient = getRennClient();
 			
 			if (!rennClient.isLogin())
 			{
