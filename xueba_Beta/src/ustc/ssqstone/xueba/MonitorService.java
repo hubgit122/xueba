@@ -2,6 +2,7 @@ package ustc.ssqstone.xueba;
 
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
+import java.util.Date;
 import java.util.List;
 
 import android.annotation.SuppressLint;
@@ -55,7 +56,7 @@ import android.view.WindowManager.LayoutParams;
  */
 public class MonitorService extends Service
 {
-	private static final int	REST_TIME	= XueBaYH.debugRest?20*1000:60*1000;
+	private static final int	REST_TIME	= XueBaYH.debugRest?120*1000:60*1000;
 	private static final int	MAX_USE_TIME	= XueBaYH.debugRest? 30*1000 : 1000 * 60 * 45;
 	private static final String	LAST_SURF_DATE	= "last surf date";
 	private static final String	SURF_TIME_OF_S	= "surf time of ";
@@ -146,6 +147,12 @@ public class MonitorService extends Service
 	private RestView		myFV		= null;
 	protected int screenWidth;
 	protected int screenHeight;
+	static MonitorService monitorService = null;
+	
+	static protected MonitorService getService()
+	{
+		return monitorService;
+	}
 	
 	@Override
 	public void onCreate()
@@ -169,6 +176,8 @@ public class MonitorService extends Service
 		registerReceiver(screenOffBroadcastReceiver, intentFilter);
 		
 		createRestView();
+		
+		monitorService = this;
 	}
 	
 	protected void logLockedTime()
@@ -223,9 +232,9 @@ public class MonitorService extends Service
 		
 		if (removeRestriction)
 		{
+			editor.commit();
 			status = Status.halting;
 			informed = false;
-			editor.commit();
 			
 			if (tmpStatus==Status.force_resting)
 			{
@@ -233,7 +242,6 @@ public class MonitorService extends Service
 			}
 			else 
 			{
-				XueBaYH.getApp().trimUsageTime(0);
 				XueBaYH.getApp().destoryRestrictedActivity(tmpStatus.getLocalString());
 			}
 		}
@@ -245,7 +253,7 @@ public class MonitorService extends Service
 				handler.sendEmptyMessage(ADD_VIEW);
 				
 				status = Status.force_resting;
-				startTime = now + MAX_USE_TIME - getSharedPreferences(XueBaYH.VALUES, MODE_PRIVATE).getInt(XueBaYH.USAGE_TIME, 0);
+				startTime = now;
 			}
 			else if ((nightEn) && (nightBegin < now) && (now <= nightEnd))
 			{
@@ -330,7 +338,7 @@ public class MonitorService extends Service
 		{
 			editor.putBoolean(XueBaYH.NIGHT_EN, false);
 			nightEn = false;
-			string = "有证据表明我曾经强制退出过. 而且我所定的" + "从" + simpleDateFormat.format(sharedPreferences.getLong(XueBaYH.NIGHT_BEGIN, 0)) + "到" + simpleDateFormat.format(sharedPreferences.getLong(XueBaYH.NIGHT_END, 0)) + "睡觉" + "的计划也没有得到正常的执行, 再口头批评一次! \\timeStamp = " + sharedPreferences.getLong(XueBaYH.NIGHT_END, 0) + "\n";
+			string = "有证据表明我曾经强制退出过. 而且我所定的" + "从" + simpleDateFormat.format(sharedPreferences.getLong(XueBaYH.NIGHT_BEGIN, 0)) + "到" + simpleDateFormat.format(sharedPreferences.getLong(XueBaYH.NIGHT_END, 0)) + "睡觉" + "的计划也没有得到正常的执行, 口头批评一次! \\timeStamp = " + now + "\n";
 			editor.putString(XueBaYH.PENGDING_LOGS, sharedPreferences.getString(XueBaYH.PENGDING_LOGS, "") + string);
 			editor.commit();
 		}
@@ -338,7 +346,7 @@ public class MonitorService extends Service
 		{
 			editor.putBoolean(XueBaYH.NOON_EN, false);
 			noonEn = false;
-			string = "有证据表明我曾经强制退出过. 而且我所定的" + "从" + simpleDateFormat.format(sharedPreferences.getLong(XueBaYH.NOON_BEGIN, 0)) + "到" + simpleDateFormat.format(sharedPreferences.getLong(XueBaYH.NOON_END, 0)) + "睡午觉" + "的计划也没有得到正常的执行, 再口头批评一次! \\timeStamp = " + sharedPreferences.getLong(XueBaYH.NOON_END, 0) + "\n";
+			string = "有证据表明我曾经强制退出过. 而且我所定的" + "从" + simpleDateFormat.format(sharedPreferences.getLong(XueBaYH.NOON_BEGIN, 0)) + "到" + simpleDateFormat.format(sharedPreferences.getLong(XueBaYH.NOON_END, 0)) + "睡午觉" + "的计划也没有得到正常的执行, 口头批评一次! \\timeStamp = " + now + "\n";
 			editor.putString(XueBaYH.PENGDING_LOGS, sharedPreferences.getString(XueBaYH.PENGDING_LOGS, "") + string);
 			editor.commit();
 		}
@@ -346,26 +354,30 @@ public class MonitorService extends Service
 		{
 			editor.putBoolean(XueBaYH.STUDY_EN, false);
 			studyEn = false;
-			string = "有证据表明我曾经强制退出过. 而且我所定的" + "从" + simpleDateFormat.format(sharedPreferences.getLong(XueBaYH.STUDY_BEGIN, 0)) + "到" + simpleDateFormat.format(sharedPreferences.getLong(XueBaYH.STUDY_END, 0)) + "学习" + "的计划也没有得到正常的执行, 再口头批评一次! \\timeStamp = " + sharedPreferences.getLong(XueBaYH.STUDY_END, 0) + "\n";
+			string = "有证据表明我曾经强制退出过. 而且我所定的" + "从" + simpleDateFormat.format(sharedPreferences.getLong(XueBaYH.STUDY_BEGIN, 0)) + "到" + simpleDateFormat.format(sharedPreferences.getLong(XueBaYH.STUDY_END, 0)) + "学习" + "的计划也没有得到正常的执行, 口头批评一次! \\timeStamp = " + now + "\n";
 			editor.putString(XueBaYH.PENGDING_LOGS, sharedPreferences.getString(XueBaYH.PENGDING_LOGS, "") + string);
 			editor.commit();
 		}
 		
-		status = Status.halting;
+		if (status==null || status!=Status.force_resting)
+		{
+			status = Status.halting;
+		}
 		
-		refreshCheckInterval();
+		refreshCheckInterval();		//这里刷新状态. 
 		
 		if ((status != Status.halting)&&(startTime<now - 60*1000))				//说明中途被强退了, 不是开机恰好进入任务. 
 		{
-			if (sharedPreferences.getLong(XueBaYH.LAST_WRITE, 0) < now - 2*60*1000)					//说明退出时间超过了一分钟 因为lastWrite是一分钟写入一次
+			if (sharedPreferences.getLong(XueBaYH.LAST_WRITE, 0) < now - 4*60*1000)					//说明退出时间超过了三分钟 因为lastWrite是一分钟写入一次
 			{
-				string = "我在自己所定的" + "从" + startTime  + "开始" + status.getLocalString() + "的计划被我中途退出, 口头批评一次! \\timeStamp = " + now + "\n";
+				string = "我在自己所定的" + "从" + simpleDateFormat.format(new Date(startTime))  + "开始" + status.getLocalString() + "的计划被我中途退出, 口头批评一次! \\timeStamp = " + now + "\n";
 				editor.putString(XueBaYH.PENGDING_LOGS, sharedPreferences.getString(XueBaYH.PENGDING_LOGS, "") + string);
+				editor.commit();
 			}
-			else 
-			{
-				XueBaYH.getApp().showToast("有证据表明监视任务被强行退出过, 但是退出时间很短, 这次就不追究了. 下次注意! ");
-			}
+//			else 
+//			{
+//				XueBaYH.getApp().showToast("有证据表明监视任务被强行退出过, 但是退出时间很短, 这次就不追究了. 下次注意! ");
+//			}
 		}
 	}
 	
@@ -685,7 +697,7 @@ public class MonitorService extends Service
 		}
 		else
 		{
-			String permitted = ("ustc.ssqstone.xueba com.android.settings GSW.AddinTimer com.zdworks.android.zdclock com.dianxinos.clock com.android.phone com.android.contacts com.android.mms com.jb.gosms-1 org.dayup.gnotes " + ((status == Status.studying) ? ("com.snda.youni cn.ssdl.bluedict com.ghisler.android.TotalCommander udk.android.reader jp.ne.kutu.Panecal com.diotek.diodict3.phone.samsung.chn com.docin.zlibrary.ui.android com.towords com.youdao.note com.duokan.reader com.baidu.wenku com.nd.android.pandareader com.qq.reader com.lectek.android.sfreader bubei.tingshu de.softxperience.android.noteeverything ") : "")); // ,
+			String permitted = ("ustc.ssqstone.xueba com.android.settings GSW.AddinTimer com.zdworks.android.zdclock com.dianxinos.clock com.android.phone com.android.contacts com.android.mms com.jb.gosms-1 com.snda.youni org.dayup.gnotes de.softxperience.android.noteeverything " + ((status == Status.studying) ? ("cn.ssdl.bluedict com.ghisler.android.TotalCommander udk.android.reader jp.ne.kutu.Panecal com.diotek.diodict3.phone.samsung.chn com.docin.zlibrary.ui.android com.towords com.youdao.note com.duokan.reader com.baidu.wenku com.nd.android.pandareader com.qq.reader com.lectek.android.sfreader bubei.tingshu ") : "")); // ,
 			
 			return (Calendar.getInstance().getTimeInMillis()>startTime)&&!permitted.contains(packageName);
 		}

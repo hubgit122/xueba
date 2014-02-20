@@ -140,7 +140,7 @@ public class RestrictedModeActivity extends Activity
 				@Override
 				public void onClick(DialogInterface dialog, int which)
 				{
-					if (XueBaYH.debug)
+					if (XueBaYH.debug && !XueBaYH.debugSMS)
 					{
 						XueBaYH.getApp().destoryRestrictedActivity(getIntent().getStringExtra(XueBaYH.RESTRICTED_MODE));
 					}
@@ -171,8 +171,9 @@ public class RestrictedModeActivity extends Activity
 		public void onClick(View v)
 		{
 			Intent intent=new Intent(RestrictedModeActivity.this,MainActivity.class);
-			intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+			intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
 			startActivity(intent);
+			finish();
 		}
 	};
 	
@@ -284,6 +285,7 @@ public class RestrictedModeActivity extends Activity
 				XueBaYH.getApp().restartMonitorService();
 			}
 			finish();
+			startActivity(new Intent(this, MainActivity.class));
 		}
 		else
 		{
@@ -299,7 +301,7 @@ public class RestrictedModeActivity extends Activity
 		super.onDestroy();
 		
 		Intent intent=new Intent(RestrictedModeActivity.this,MainActivity.class);
-		intent.setFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP);
+		intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
 		startActivity(intent);
 	}
 	

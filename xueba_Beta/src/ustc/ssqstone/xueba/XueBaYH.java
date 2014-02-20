@@ -190,22 +190,27 @@ public class XueBaYH extends Application
 																			case TRIM_USAGE_TIME:
 																				sharedPreferences = getSharedPreferences(XueBaYH.VALUES, MODE_PRIVATE);
 																				
-																				if (msg.arg1 < 0)
+																				switch (msg.arg1)
 																				{
-																					if (sharedPreferences.getLong(XueBaYH.LOCKED_TIME, 0) + 2 * 60 * 1000 < Calendar.getInstance().getTimeInMillis())
-																					{
+																					case 0:
 																						EditorWithParity editorWithParity = new EditorWithParity(sharedPreferences);
 																						editorWithParity.putInt(XueBaYH.USAGE_TIME, 0);
 																						editorWithParity.commit();
-																					}
-																				}
-																				else
-																				{
-																					EditorWithParity editorWithParity = new EditorWithParity(sharedPreferences);
-																					editorWithParity.putInt(XueBaYH.USAGE_TIME, msg.arg1);
-																					editorWithParity.commit();
+																						break;
+																					case -1:
+																						if (sharedPreferences.getLong(XueBaYH.LOCKED_TIME, 0) + 2 * 60 * 1000 < Calendar.getInstance().getTimeInMillis())
+																						{
+																							editorWithParity = new EditorWithParity(sharedPreferences);
+																							editorWithParity.putInt(XueBaYH.USAGE_TIME, 0);
+																							editorWithParity.commit();
+																						}
+																						break;
+																						
+																					default:
+																						break;
 																				}
 																				break;
+																				
 																			default:
 																				break;
 																		}
@@ -227,25 +232,20 @@ public class XueBaYH extends Application
 																				case 0: // 飞行模式已关闭
 																					SharedPreferences sharedPreferences = getSharedPreferences(VALUES, MODE_PRIVATE);
 																					String pendingString = sharedPreferences.getString(PENDING_SMSs, "");
+																					EditorWithParity editor = new EditorWithParity(sharedPreferences);
+																					editor.putString(PENDING_SMSs, "");
+																					editor.commit();
+																					
 																					if (pendingString.length() > 0)
 																					{
-																						EditorWithParity editor = new EditorWithParity(sharedPreferences);
 																						String[] strings = pendingString.split(";;");
 																						for (int i = 0; i < strings.length; i++)
 																						{
 																							String string = strings[i];
-																							if (string.contains("to"))
+																							if (string.contains("to: ")&&string.contains("content: "))
 																							{
-																								sendSMS(string.substring(string.indexOf("content: ") + 8), string.substring(4, 15), string.contains("; mode: ") ? string.substring(string.indexOf("; mode: ") + "; mode: ".length(), string.indexOf(';', string.indexOf("mode: "))) : null);
+																								sendSMS(string.substring(string.indexOf("content: ") + "content: ".length()), string.substring("to: ".length(), "to".length()+11), string.contains("; mode: ") ? string.substring(string.indexOf("; mode: ") + "; mode: ".length(), string.indexOf(';', string.indexOf("mode: "))) : null);
 																							}
-																							String bufferString = "";
-																							for (int j = i + 1; j < strings.length; j++)
-																							{
-																								String string_ = strings[j] + ";;";
-																								bufferString += string_;
-																							}
-																							editor.putString(PENDING_SMSs, bufferString);
-																							editor.commit();
 																						}
 																					}
 																					break;

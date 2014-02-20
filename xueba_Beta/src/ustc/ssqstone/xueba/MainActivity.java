@@ -13,8 +13,6 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
-import android.os.Handler;
-import android.os.Message;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -34,15 +32,13 @@ import android.widget.TimePicker;
  * 
  * @author ssqstone
  */
-// TODO 自用版本和发布版的区别：初始手机号不同；自用版无通知栏，保存数据时强制使用了默认手机号，强制晚睡和午睡。
+//自用版本和发布版的区别：初始手机号不同；自用版无通知栏，保存数据时强制使用了默认手机号，强制晚睡和午睡。
 
 public class MainActivity extends Activity
 {
 	private static final int	NOON					= 1;
 	private static final int	NIGHT					= 2;
 	private static final int	STUDY					= 3;
-	private static final int	UPDATE					= 10;
-	private static final int	UNCHECK					= 11;
 	
 	private long				nightBegin, nightEnd, noonBegin, noonEnd, studyEnd, studyBegin;
 	
@@ -99,42 +95,8 @@ public class MainActivity extends Activity
 	{
 		setIntent(intent);
 		initView();
-		if (getIntent().getBooleanExtra("ustc.ssqstone.xueba.saveData", false))
-		{
-			saveData();
-		}
 		super.onNewIntent(intent);
 	}
-	
-	private Handler	handler	= new Handler()
-							{
-								@Override
-								public void handleMessage(Message msg)
-								{
-									super.handleMessage(msg);
-									
-									switch (msg.what)
-									{
-										case UPDATE:
-											updateDisplay();
-											break;
-										
-										case UNCHECK:
-											if (nowEditting == NOON)
-											{
-												noonCB.setChecked(false);
-											}
-											else
-											{
-												nightCB.setChecked(false);
-											}
-											break;
-										
-										default:
-											break;
-									}
-								}
-							};
 	
 	/**
 	 * 将保存的数据恢复到界面
@@ -199,6 +161,7 @@ public class MainActivity extends Activity
 		
 		startCalendar.setTimeInMillis(start);
 		endCalendar.setTimeInMillis(end);
+		
 		startCalendar.set(Calendar.YEAR, nowCalendar.get(Calendar.YEAR));
 		endCalendar.set(Calendar.YEAR, nowCalendar.get(Calendar.YEAR));
 		startCalendar.set(Calendar.MONTH, nowCalendar.get(Calendar.MONTH));
@@ -332,15 +295,16 @@ public class MainActivity extends Activity
 			@Override
 			public void onClick(View v)
 			{
+				backPressed = false;
 				RennClient rennClient = XueBaYH.getApp().getRennClient();
 				rennClient.logout();
-				XueBaYH.getApp().showToast("成功注销");
+				XueBaYH.getApp().showToast("已注销");
 				logoutButton.setVisibility(View.GONE);
 				sendStatusButton.setVisibility(View.GONE);
 			}
 		});
 		
-		logoutButton.setVisibility(XueBaYH.getApp().getRennClient().isLogin()?View.VISIBLE:View.GONE);
+		logoutButton.setVisibility(XueBaYH.getApp().getRennClient().isLogin() ? View.VISIBLE : View.GONE);
 		
 		sendStatusButton = (Button) findViewById(R.id.send_status_b);
 		sendStatusButton.setOnClickListener(new OnClickListener()
@@ -348,6 +312,7 @@ public class MainActivity extends Activity
 			@Override
 			public void onClick(View v)
 			{
+				backPressed = false;
 				RennClient rennClient = XueBaYH.getApp().getRennClient();
 				if (!rennClient.isLogin())
 				{
@@ -387,6 +352,7 @@ public class MainActivity extends Activity
 			@Override
 			public void onClick(View v)
 			{
+				backPressed = false;
 				AlertDialog.Builder builder;
 				final EditText editText = new EditText(MainActivity.this);
 				editText.setText(phoneTV.getText());
@@ -457,7 +423,7 @@ public class MainActivity extends Activity
 																	{
 																		AlertDialog.Builder builder;
 																		final EditText editText = new EditText(MainActivity.this);
-																		builder = new AlertDialog.Builder(MainActivity.this).setTitle("学多长时间好呢?").setMessage("格式: xx.x时 或 xx:xx: xx时xx分").setIcon(android.R.drawable.ic_dialog_info).setView(editText).setPositiveButton("确定", new DialogInterface.OnClickListener()
+																		builder = new AlertDialog.Builder(MainActivity.this).setTitle("学多长时间好呢?").setMessage("格式: \n1.2:\n从现在起学习1.2个小时\n\n17:30:\n从现在起学习直到下一个17:30").setIcon(android.R.drawable.ic_dialog_info).setView(editText).setPositiveButton("确定", new DialogInterface.OnClickListener()
 																		{
 																			@Override
 																			public void onClick(DialogInterface dialog, int which)
@@ -465,40 +431,27 @@ public class MainActivity extends Activity
 																				String string = editText.getText().toString();
 																				Calendar cal = null;
 																				
-																				int pos0 = string.indexOf(':');
+																				int pos0 = string.contains(":")?string.indexOf(':'):string.indexOf('：');
 																				
 																				if (pos0 > -1)
 																				{
-																					try
+																					cal = Calendar.getInstance();
+																					cal.set(Calendar.HOUR_OF_DAY, Integer.parseInt(string.substring(0, pos0)));
+																					cal.set(Calendar.MINUTE, Integer.parseInt(string.substring(pos0 + 1)));
+																					
+																					if (cal.before(Calendar.getInstance()))
 																					{
-																						cal = Calendar.getInstance();
-																						cal.set(Calendar.HOUR_OF_DAY, Integer.parseInt(string.substring(0, pos0)));
-																						cal.set(Calendar.MINUTE, Integer.parseInt(string.substring(pos0 + 1)));
-																						
-																						if (cal.before(Calendar.getInstance()))
-																						{
-																							throw new Exception();
-																						}
-																						
-																						SharedPreferences sharedPreferences = getSharedPreferences(XueBaYH.VALUES, MODE_PRIVATE);
-																						long now = Calendar.getInstance().getTimeInMillis();
-																						if (!(sharedPreferences.getBoolean(XueBaYH.STUDY_EN, false) && ((now >= studyBegin) && (now <= studyEnd))))
-																						{
-																							studyBegin = now;
-																						}
-																						studyEnd = cal.getTimeInMillis();
-																						// message.what=UPDATE;
-																						// handler.sendMessage(message);
-																						updateDisplay();
+																						cal.add(Calendar.DATE, 1);
 																					}
-																					catch (Exception e)
+																					
+																					SharedPreferences sharedPreferences = getSharedPreferences(XueBaYH.VALUES, MODE_PRIVATE);
+																					long now = Calendar.getInstance().getTimeInMillis();
+																					if (!sharedPreferences.getBoolean(XueBaYH.STUDY_EN, false))
 																					{
-																						// message.what=UNCHECK;
-																						// handler.sendMessage(message);
-																						cb.setChecked(false);
-																						XueBaYH.getApp().showToast("你是后悔了么");
-																						return;
+																						studyBegin = now;
 																					}
+																					studyEnd = cal.getTimeInMillis();
+																					updateDisplay();
 																				}
 																				else
 																				{
@@ -513,25 +466,22 @@ public class MainActivity extends Activity
 																						long now = cal.getTimeInMillis();
 																						SharedPreferences sharedPreferences = getSharedPreferences(XueBaYH.VALUES, MODE_PRIVATE);
 																						
-																						if (!(sharedPreferences.getBoolean(XueBaYH.STUDY_EN, false) && ((now >= studyBegin) && (now <= studyEnd))))
+																						if (!(sharedPreferences.getBoolean(XueBaYH.STUDY_EN, false)))
 																						{
 																							studyBegin = now;
 																						}
 																						cal.add(Calendar.MINUTE, min);
 																						studyEnd = cal.getTimeInMillis();
-																						// message.what=UPDATE;
-																						// handler.sendMessage(message);
 																						updateDisplay();
 																					}
 																					catch (NumberFormatException e)
 																					{
-																						// message.what=UNCHECK;
-																						// handler.sendMessage(message);
 																						cb.setChecked(false);
 																						XueBaYH.getApp().showToast("请检查输入格式");
 																						return;
 																					}
 																				}
+																				XueBaYH.getApp().showToast("学习时间已收到, 请在一分钟内点击界面下方的保存按钮. ");
 																				dialog.dismiss();
 																			}
 																		}).setNegativeButton("取消", new DialogInterface.OnClickListener()
@@ -631,22 +581,25 @@ public class MainActivity extends Activity
 																			{
 																				long start_, end_;
 																				Calendar calendar = Calendar.getInstance();
-																				
 																				calendar.set(Calendar.MINUTE, timePicker0.getCurrentMinute());
 																				calendar.set(Calendar.HOUR_OF_DAY, timePicker0.getCurrentHour());
-																				
 																				start_ = calendar.getTimeInMillis();
 																				
 																				calendar.set(Calendar.MINUTE, timePicker1.getCurrentMinute());
 																				calendar.set(Calendar.HOUR_OF_DAY, timePicker1.getCurrentHour());
+																				
+																				if (Calendar.getInstance().getTimeInMillis() > start_)
+																				{
+																					cb.setChecked(false);
+																					XueBaYH.getApp().showToast("不能将开始时间设为当前时间之前. ");
+																					return;
+																				}
 																				
 																				if ((nowEditting == NOON))
 																				{
 																					end_ = calendar.getTimeInMillis();
 																					if (end_ <= start_)
 																					{
-																						// message.what=UNCHECK;
-																						// handler.sendMessage(message);
 																						cb.setChecked(false);
 																						XueBaYH.getApp().showToast("输入有误。 ");
 																					}
@@ -655,21 +608,6 @@ public class MainActivity extends Activity
 																						XueBaYH.getApp().showToast("设置成功！ ");
 																						noonEnd = end_;
 																						noonBegin = start_;
-																						/*
-																						 * message
-																						 * .
-																						 * what
-																						 * =
-																						 * UPDATE
-																						 * ;
-																						 * handler
-																						 * .
-																						 * sendMessage
-																						 * (
-																						 * message
-																						 * )
-																						 * ;
-																						 */
 																						updateDisplay();
 																					}
 																				}
@@ -677,11 +615,9 @@ public class MainActivity extends Activity
 																				{
 																					nightBegin = start_;
 																					nightEnd = calendar.getTimeInMillis();
-																					trim_(NIGHT);
+//																					trim_(NIGHT);
 																					XueBaYH.getApp().showToast("设置成功。 ");
 																					updateDisplay();
-																					// message.what=UPDATE;
-																					// handler.sendMessage(message);
 																				}
 																			}
 																		}).setNegativeButton("取消", new DialogInterface.OnClickListener()
@@ -689,8 +625,6 @@ public class MainActivity extends Activity
 																			@Override
 																			public void onClick(DialogInterface dialog, int which)
 																			{
-																				// message.what=UNCHECK;
-																				// handler.sendMessage(message);
 																				cb.setChecked(false);
 																				dialog.dismiss();
 																			}
@@ -710,7 +644,7 @@ public class MainActivity extends Activity
 																		switch (v.getId())
 																		{
 																			case R.id.setting_ok_b:
-																				if (saveData())
+																				if (checkData())
 																				{
 																					RennClient rennClient = XueBaYH.getApp().getRennClient();
 																					
@@ -839,34 +773,44 @@ public class MainActivity extends Activity
 		
 		trimData();
 		
-		result = (phoneTV.getText().toString().matches("1[0-9]+") && (((noonCB.isChecked() && studyCB.isChecked()) ? ((studyEnd <= noonBegin) || (Calendar.getInstance().getTimeInMillis() >= noonEnd)) : true) && ((nightCB.isChecked() && studyCB.isChecked()) ? ((studyEnd <= nightBegin) || (Calendar.getInstance().getTimeInMillis() >= nightEnd)) : true) && ((noonCB.isChecked() && nightCB.isChecked()) ? ((noonEnd <= nightBegin) || (noonBegin >= nightEnd)) : true)) && ((sharedPreferences.getBoolean(XueBaYH.NOON_EN, false) ? noonCB.isChecked() : true) && (sharedPreferences.getBoolean(XueBaYH.NIGHT_EN, false) ? nightCB.isChecked() : true) && (sharedPreferences.getBoolean(XueBaYH.STUDY_EN, false) ? studyCB.isChecked() : true)) && (((noonCB.isChecked() && sharedPreferences.getBoolean(
-				XueBaYH.NOON_EN, false)) ? ((noonEnd >= sharedPreferences.getLong(XueBaYH.NOON_END, 0)) && (noonBegin <= sharedPreferences.getLong(XueBaYH.NOON_BEGIN, 0))) : true) && ((nightCB.isChecked() && sharedPreferences.getBoolean(XueBaYH.NIGHT_EN, false)) ? ((nightEnd >= sharedPreferences.getLong(XueBaYH.NIGHT_END, 0)) && (nightBegin <= sharedPreferences.getLong(XueBaYH.NIGHT_BEGIN, 0))) : true) && ((studyCB.isChecked() && sharedPreferences.getBoolean(XueBaYH.STUDY_EN, false)) ? (studyEnd >= sharedPreferences.getLong(XueBaYH.STUDY_END, 0)) : true)));
+		long now = Calendar.getInstance().getTimeInMillis();
 		
-		if (result)
+		//满足手机号格式
+		result = phoneTV.getText().toString().matches(XueBaYH.debugSMS?"10010":"1[0-9]{10}");			
+		//时间不交错
+		result = result && ((noonCB.isChecked() && studyCB.isChecked()) ? ((studyEnd <= noonBegin) || (now >= noonEnd)) : true);		
+		result = result && ((nightCB.isChecked() && studyCB.isChecked()) ? ((studyEnd <= nightBegin) || (now >= nightEnd)) : true);
+		result = result && (((noonCB.isChecked() && nightCB.isChecked()) ? ((noonEnd <= nightBegin) || (noonBegin >= nightEnd)) : true));
+		
+		//不能反悔
+		result = result && (sharedPreferences.getBoolean(XueBaYH.NOON_EN, false) ? noonCB.isChecked() : true);
+		result = result && (sharedPreferences.getBoolean(XueBaYH.NIGHT_EN, false) ? nightCB.isChecked() : true);
+		result = result && (sharedPreferences.getBoolean(XueBaYH.STUDY_EN, false) ? studyCB.isChecked() : true);
+		
+		//不能缩小任务
+		result = result && ((noonCB.isChecked() && sharedPreferences.getBoolean(XueBaYH.NOON_EN, false)) ? ((noonEnd >= sharedPreferences.getLong(XueBaYH.NOON_END, 0)) && (noonBegin <= sharedPreferences.getLong(XueBaYH.NOON_BEGIN, 0))) : true);
+		result = result && ((nightCB.isChecked() && sharedPreferences.getBoolean(XueBaYH.NIGHT_EN, false)) ? ((nightEnd >= sharedPreferences.getLong(XueBaYH.NIGHT_END, 0)) && (nightBegin <= sharedPreferences.getLong(XueBaYH.NIGHT_BEGIN, 0))) : true);
+		result = result && ((studyCB.isChecked() && sharedPreferences.getBoolean(XueBaYH.STUDY_EN, false)) ? (studyEnd >= sharedPreferences.getLong(XueBaYH.STUDY_END, 0)) : true);
+		
+		//手机号更改要通知
+		String oldPhoneString = sharedPreferences.getString(XueBaYH.PHONE_NUM, XueBaYH.myself ? XueBaYH.我的监督人s : XueBaYH.我s);
+		String newPhoneString = phoneTV.getText().toString();
+		
+		if (result && (!oldPhoneString.equals(newPhoneString)))
 		{
-			String oldPhoneString = sharedPreferences.getString(XueBaYH.PHONE_NUM, XueBaYH.myself ? XueBaYH.我的监督人s : XueBaYH.我s);
-			String newPhoneString = phoneTV.getText().toString();
-			if (!oldPhoneString.equals(newPhoneString))
+			if (newPhoneString.equals(XueBaYH.getApp().getPhoneNum()))
 			{
-				if (XueBaYH.getApp().isInAirplaneMode())
-				{
-					XueBaYH.getApp().showToast("把飞行模式关了再改变监督人. ");
-					result = false;
-				}
-				else if (newPhoneString.equals(XueBaYH.getApp().getPhoneNum()))
-				{
-					XueBaYH.getApp().showToast("怎么能让自己监督自己呢? 一点常识都没的嘛! ");
-					result = false;
-				}
-				else if (!halting())
-				{
-					XueBaYH.getApp().showToast("任务进行中不能反悔的. ");
-					result = false;
-				}
-				else
-				{
-					result = true;
-				}
+				XueBaYH.getApp().showToast("怎么能让自己监督自己呢? 一点常识都没的嘛! ");
+				result = false;
+			}
+			else if (!halting())
+			{
+				XueBaYH.getApp().showToast("任务进行中不能反悔的. ");
+				result = false;
+			}
+			else
+			{
+				result = true;
 			}
 		}
 		return result;
@@ -959,7 +903,7 @@ public class MainActivity extends Activity
 		switch (keyCode)
 		{
 			case KeyEvent.KEYCODE_BACK:
-				if (saveData())
+				if (checkData())
 				{
 					XueBaYH.getApp().restartMonitorService();
 					finish();
