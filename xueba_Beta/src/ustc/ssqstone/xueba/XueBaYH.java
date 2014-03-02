@@ -46,7 +46,7 @@ import android.widget.Toast;
 public class XueBaYH extends Application
 {
 	protected static final boolean	myself						= true;
-	protected static final boolean	debug						= false;
+	protected static final boolean	debug						= true;
 	protected static final boolean	debugSMS					= false;
 	protected static final boolean	debugRest					= false;
 	
@@ -71,7 +71,6 @@ public class XueBaYH extends Application
 	protected static final String	KEY							= "key";
 	protected static final String	INFORM_WON_T_SAVE			= "输入有误, 不能保存";
 	protected static final String	INFORM_SAVED				= "已成功保存";
-	// protected static final String DENIED = "denied";
 	protected static final String	PARITY						= "parity";
 	protected static final String	STUDY_DENIED				= "study_denied";
 	protected static final String	NOON_DENIED					= "noon_denied";

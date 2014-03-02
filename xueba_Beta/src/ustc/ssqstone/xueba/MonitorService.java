@@ -56,12 +56,10 @@ import android.view.WindowManager.LayoutParams;
  */
 public class MonitorService extends Service
 {
-	private static final int	REST_TIME	= XueBaYH.debugRest?120*1000:60*1000;
-	private static final int	MAX_USE_TIME	= XueBaYH.debugRest? 30*1000 : 1000 * 60 * 45;
+	private static final int	REST_TIME	= XueBaYH.debugRest?120*1000:120*1000;
+	private static final int	MAX_USE_TIME	= XueBaYH.debugRest? 30*1000 : 300;//1000 * 60 * 45;
 	private static final String	LAST_SURF_DATE	= "last surf date";
 	private static final String	SURF_TIME_OF_S	= "surf time of ";
-	// private static final String SURF_TIME_OF_TODAY_S =
-	// "surf time of today: ";
 	private boolean				screenLocked	= false;
 	private static final int	SMS				= 2;
 	private static final int	TOAST			= 3;
@@ -763,9 +761,8 @@ public class MonitorService extends Service
 		wmParams.type = LayoutParams.TYPE_PHONE;
 		wmParams.format = PixelFormat.RGBA_8888;
 
-		wmParams.flags = LayoutParams.FLAG_NOT_TOUCH_MODAL | LayoutParams.FLAG_NOT_TOUCHABLE | LayoutParams.FLAG_NOT_FOCUSABLE;// | LayoutParams.FLAG_DIM_BEHIND ;// | LayoutParams.FLAG_WATCH_OUTSIDE_TOUCH
-		//| LayoutParams.FLAG_NOT_TOUCH_MODAL | 
-		
+		wmParams.flags = LayoutParams.FLAG_NOT_TOUCH_MODAL | LayoutParams.FLAG_NOT_FOCUSABLE| LayoutParams.FLAG_NOT_TOUCHABLE ;
+		// | LayoutParams.FLAG_DIM_BEHIND ;// | LayoutParams.FLAG_WATCH_OUTSIDE_TOUCH
 		wmParams.gravity = Gravity.LEFT | Gravity.TOP;
 		// 以屏幕左上角为原点，设置x、y初始值
 		wmParams.x = 0;
@@ -775,7 +772,7 @@ public class MonitorService extends Service
 		wmParams.width = WindowManager.LayoutParams.FILL_PARENT;
 		wmParams.height = WindowManager.LayoutParams.FILL_PARENT;
 		
-		wmParams.alpha = 0.95f;
+		wmParams.alpha = 0.9f;
 	}
 	// private Notification updateNotification()
 	// {

@@ -342,6 +342,8 @@ public class MainActivity extends Activity
 				builder.create().show();
 			}
 		});
+
+		sendStatusButton.setVisibility(XueBaYH.getApp().getRennClient().isLogin() ? View.VISIBLE : View.GONE);
 		
 		// phoneText = (EditText) findViewById(R.id.phoneNum_et);
 		phoneTV = (TextView) findViewById(R.id.phone_tv);
@@ -675,6 +677,10 @@ public class MainActivity extends Activity
 																					
 																					finish();
 																				}
+																				else
+																				{
+																					XueBaYH.getApp().showToast("设置有误, 不要缩短任务, 不要使时间重叠. ");
+																				}
 																				XueBaYH.getApp().restartMonitorService();
 																				
 																				break;
@@ -926,12 +932,4 @@ public class MainActivity extends Activity
 				return false;
 		}
 	}
-	
-	// @Override
-	// protected void onPause()
-	// {
-	// XueBaYH.getApp().restartMonitorService();
-	// super.onPause();
-	// }
-	
 }
