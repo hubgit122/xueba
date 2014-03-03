@@ -1,5 +1,7 @@
 package ustc.ssqstone.xueba;
 
+import ustc.ssqstone.xueba.R;
+
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Date;
@@ -57,7 +59,7 @@ import android.view.WindowManager.LayoutParams;
 public class MonitorService extends Service
 {
 	private static final int	REST_TIME	= XueBaYH.debugRest?120*1000:120*1000;
-	private static final int	MAX_USE_TIME	= XueBaYH.debugRest? 30*1000 : 300;//1000 * 60 * 45;
+	private static final int	MAX_USE_TIME	= XueBaYH.debugRest? 30*1000 : 1000 * 60 * 45;
 	private static final String	LAST_SURF_DATE	= "last surf date";
 	private static final String	SURF_TIME_OF_S	= "surf time of ";
 	private boolean				screenLocked	= false;

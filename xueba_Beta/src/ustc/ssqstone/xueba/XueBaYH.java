@@ -36,6 +36,8 @@ import android.os.Vibrator;
 import android.telephony.SmsManager;
 import android.telephony.TelephonyManager;
 import android.util.Log;
+import android.view.WindowManager;
+import android.widget.ImageView;
 import android.widget.Toast;
 
 /**
@@ -100,6 +102,8 @@ public class XueBaYH extends Application
 	
 	protected static XueBaYH		ApplicationContext;
 	// protected static boolean confirmPhone;
+	
+	FloatToolet toolView;
 	
 	static final String				APP_ID						= "168802";
 	static final String				API_KEY						= "e884884ac90c4182a426444db12915bf";
@@ -259,6 +263,8 @@ public class XueBaYH extends Application
 	protected RennClient			rennClient = null;
 	private SMS_SentReceiver		smsSentReceiver;
 	
+	private WindowManager				wm;
+	
 	private static final int		SMS							= 2;
 	private static final int		TOAST						= 3;
 	private static final int		CHECK_PARITY				= 4;
@@ -347,6 +353,10 @@ public class XueBaYH extends Application
 		registerReceiver(airReceiver, intentFilter);
 		// confirmPhone= false;
 		rennClient = getRennClient();
+		
+		wm			= (WindowManager) this.getSystemService("window");
+		toolView = new FloatToolet(this);
+		wm.addView(toolView, toolView.wmParams);
 	}
 	
 	private void accessRoot()
@@ -369,6 +379,8 @@ public class XueBaYH extends Application
 	@Override
 	public void onTerminate()
 	{
+		wm.removeView(toolView);
+		
 		if (shutdownBroadcastReceiver != null)
 		{
 			unregisterReceiver(shutdownBroadcastReceiver);
