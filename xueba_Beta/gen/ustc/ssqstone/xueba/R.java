@@ -87,8 +87,10 @@ public final class R {
         public static final int toast_bg=0x7f020033;
         public static final int toast_error=0x7f020034;
         public static final int toolet_button=0x7f020035;
-        public static final int top_bg=0x7f020036;
-        public static final int wake_up=0x7f020037;
+        public static final int toolet_button_i_a=0x7f020036;
+        public static final int toolet_button_rgba=0x7f020037;
+        public static final int top_bg=0x7f020038;
+        public static final int wake_up=0x7f020039;
     }
     public static final class id {
         public static final int RelativeLayout01=0x7f080006;

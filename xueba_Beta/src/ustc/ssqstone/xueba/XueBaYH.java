@@ -213,7 +213,9 @@ public class XueBaYH extends Application
 																						break;
 																				}
 																				break;
-																				
+																			case VIBRATE_LITTLE:
+																				vibrateLittle();
+																				break;
 																			default:
 																				break;
 																		}
@@ -272,6 +274,7 @@ public class XueBaYH extends Application
 	protected static final String	LOCKED_TIME					= "locked_time";
 	protected static final String	USAGE_TIME					= "usage_time";
 	private static final int		TRIM_USAGE_TIME				= 6;
+	protected static final int	VIBRATE_LITTLE = 7;
 	
 	public void onCreate()
 	{
@@ -649,7 +652,11 @@ public class XueBaYH extends Application
 			vibrator.vibrate(new long[] { 0, 400, 400, 400, 400, 200, 200, 200, 200, 400, 400 }, -1);
 		}
 	}
-	
+	protected void vibrateLittle()
+	{
+		Vibrator vibrator = (Vibrator) this.getSystemService(Context.VIBRATOR_SERVICE);
+		vibrator.vibrate(new long[] { 0, 80 }, -1);
+	}
 	protected void vibrateOh()
 	{
 		Vibrator vibrator = (Vibrator) this.getSystemService(Context.VIBRATOR_SERVICE);
