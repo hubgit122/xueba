@@ -47,7 +47,7 @@ import android.widget.Toast;
  */
 public class XueBaYH extends Application
 {
-	protected static final boolean	myself						= true;
+	protected static final boolean	myself						= false;
 	protected static final boolean	debug						= false;
 	protected static final boolean	debugSMS					= false;
 	protected static final boolean	debugRest					= false;
@@ -56,7 +56,7 @@ public class XueBaYH extends Application
 	protected static final String	ACK_INTERRUTION				= "ack_interrution";
 	protected static final String	INTERRUPTED_TIMES			= "interrupted times";
 	protected static final String	HOW_MANY_INTERRUPTED_TIMES	= "how_many_interrupted_times";
-	protected static final long		我							= 15556958998l;
+	protected static final long		我							= 18756086906l;
 	protected static final String	我s							= Long.valueOf(我).toString();
 	protected static final long		我的监督人						= debug && debugSMS ? 10010 : 18297958221l;
 	protected static final String	我的监督人s						= Long.valueOf(我的监督人).toString();

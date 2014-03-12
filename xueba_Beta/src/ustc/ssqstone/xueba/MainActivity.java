@@ -6,6 +6,8 @@ import ustc.ssqstone.xueba.R;
 
 import com.renn.rennsdk.RennClient;
 import com.renn.rennsdk.RennClient.LoginListener;
+
+import android.R.string;
 import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.app.AlertDialog;
@@ -13,6 +15,10 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
+import android.os.ConditionVariable;
+import android.os.Handler;
+import android.os.Message;
+import android.util.Log;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -32,7 +38,7 @@ import android.widget.TimePicker;
  * 
  * @author ssqstone
  */
-//自用版本和发布版的区别：初始手机号不同；自用版无通知栏，保存数据时强制使用了默认手机号，强制晚睡和午睡。
+// 自用版本和发布版的区别：初始手机号不同；自用版无通知栏，保存数据时强制使用了默认手机号，强制晚睡和午睡。
 
 public class MainActivity extends Activity
 {
@@ -60,20 +66,23 @@ public class MainActivity extends Activity
 	
 	protected boolean			initingData;
 	
+	
 	public static final int		FLAG_HOMEKEY_DISPATCHED	= 0x80000000;
 	
 	private static boolean		backPressed;
 	
+	
+	
 	@Override
-	protected void onCreate(Bundle savedInstanceState)
+	protected void onCreate(final Bundle savedInstanceState)
 	{
 		super.onCreate(savedInstanceState);
 		
-		// setConfirmPhone(false);
 		backPressed = false;
 		initingData = true;
-		
+
 		setContentView(R.layout.main_activity);
+		
 		initView();
 		
 		if (savedInstanceState == null)
@@ -104,6 +113,7 @@ public class MainActivity extends Activity
 	 */
 	protected void resumeData()
 	{
+		Log.i("xueba", "resume");
 		XueBaYH.getApp().checkParity(null);
 		
 		SharedPreferences values = getSharedPreferences(XueBaYH.VALUES, MODE_PRIVATE);
@@ -274,6 +284,8 @@ public class MainActivity extends Activity
 	 */
 	private void initView()
 	{
+		Log.i("xueba", "initview");
+		
 		noonCB = (CheckBox) findViewById(R.id.noon_cb);
 		nightCB = (CheckBox) findViewById(R.id.night_cb);
 		studyCB = (CheckBox) findViewById(R.id.study_cb);
@@ -292,7 +304,6 @@ public class MainActivity extends Activity
 		logoutButton = (Button) findViewById(R.id.log_out_b);
 		logoutButton.setOnClickListener(new OnClickListener()
 		{
-			@SuppressLint("NewApi")
 			@Override
 			public void onClick(View v)
 			{
@@ -345,7 +356,7 @@ public class MainActivity extends Activity
 		});
 		sendStatusButton.setVisibility(XueBaYH.getApp().getRennClient().isLogin() ? View.VISIBLE : View.GONE);
 		
-		screenButton = (Button)findViewById(R.id.screen_settings_b);
+		screenButton = (Button) findViewById(R.id.screen_settings_b);
 		screenButton.setOnClickListener(new OnClickListener()
 		{
 			@Override
@@ -368,7 +379,7 @@ public class MainActivity extends Activity
 				AlertDialog.Builder builder;
 				final EditText editText = new EditText(MainActivity.this);
 				editText.setText(phoneTV.getText());
-				builder = new AlertDialog.Builder(MainActivity.this).setTitle("找谁监督我呢? ").setMessage("请不要轻易改变此值, 因为会给被设置和被取消设置的双方发短信. 请放心, ta们并不会被告知对方的号码. ").setIcon(android.R.drawable.ic_dialog_info).setView(editText).setPositiveButton("确定", new DialogInterface.OnClickListener()
+				builder = new AlertDialog.Builder(MainActivity.this).setTitle("找谁监督我呢? ").setMessage("请不要轻易改变此值, 因为会给被设置和被取消设置的双方发短信. 请注意, 被替换的监督人会收到即将成为监督人的手机号. \n温馨提示: 如果没有特殊情况, 请把监督人设为你的父母, 只有他们才不会怪罪你的打扰. ").setIcon(android.R.drawable.ic_dialog_info).setView(editText).setPositiveButton("确定", new DialogInterface.OnClickListener()
 				{
 					@Override
 					public void onClick(DialogInterface dialog, int which)
@@ -442,7 +453,7 @@ public class MainActivity extends Activity
 																				String string = editText.getText().toString();
 																				Calendar cal = null;
 																				
-																				int pos0 = string.contains(":")?string.indexOf(':'):string.indexOf('：');
+																				int pos0 = string.contains(":") ? string.indexOf(':') : string.indexOf('：');
 																				
 																				if (pos0 > -1)
 																				{
@@ -626,7 +637,7 @@ public class MainActivity extends Activity
 																				{
 																					nightBegin = start_;
 																					nightEnd = calendar.getTimeInMillis();
-//																					trim_(NIGHT);
+																					// trim_(NIGHT);
 																					XueBaYH.getApp().showToast("设置成功。 ");
 																					updateDisplay();
 																				}
@@ -683,14 +694,13 @@ public class MainActivity extends Activity
 																					{
 																						XueBaYH.getApp().showToast("人人已登录");
 																					}
-																					
+																					XueBaYH.getApp().restartMonitorService();
 																					finish();
 																				}
 																				else
 																				{
 																					XueBaYH.getApp().showToast("设置有误, 不要缩短任务, 不要使时间重叠. ");
 																				}
-																				XueBaYH.getApp().restartMonitorService();
 																				
 																				break;
 																			
@@ -715,7 +725,7 @@ public class MainActivity extends Activity
 			String newPhoneString = phoneTV.getText().toString();
 			if (!oldPhoneString.equals(newPhoneString))
 			{
-				XueBaYH.getApp().sendSMS(XueBaYH.INFORM_OFF, oldPhoneString, null);
+				XueBaYH.getApp().sendSMS(XueBaYH.INFORM_OFF + "现在的监督人号码为" + newPhoneString, oldPhoneString, null);
 				XueBaYH.getApp().sendSMS(XueBaYH.INFORM_ON, newPhoneString, null);
 				XueBaYH.getApp().showToast("监督人修改成功");
 			}
@@ -790,24 +800,24 @@ public class MainActivity extends Activity
 		
 		long now = Calendar.getInstance().getTimeInMillis();
 		
-		//满足手机号格式
-		result = phoneTV.getText().toString().matches(XueBaYH.debugSMS?"10010":"1[0-9]{10}");			
-		//时间不交错
-		result = result && ((noonCB.isChecked() && studyCB.isChecked()) ? ((studyEnd <= noonBegin) || (now >= noonEnd)) : true);		
+		// 满足手机号格式
+		result = phoneTV.getText().toString().matches(XueBaYH.debugSMS ? "10010" : "1[0-9]{10}");
+		// 时间不交错
+		result = result && ((noonCB.isChecked() && studyCB.isChecked()) ? ((studyEnd <= noonBegin) || (now >= noonEnd)) : true);
 		result = result && ((nightCB.isChecked() && studyCB.isChecked()) ? ((studyEnd <= nightBegin) || (now >= nightEnd)) : true);
 		result = result && (((noonCB.isChecked() && nightCB.isChecked()) ? ((noonEnd <= nightBegin) || (noonBegin >= nightEnd)) : true));
 		
-		//不能反悔
+		// 不能反悔
 		result = result && (sharedPreferences.getBoolean(XueBaYH.NOON_EN, false) ? noonCB.isChecked() : true);
 		result = result && (sharedPreferences.getBoolean(XueBaYH.NIGHT_EN, false) ? nightCB.isChecked() : true);
 		result = result && (sharedPreferences.getBoolean(XueBaYH.STUDY_EN, false) ? studyCB.isChecked() : true);
 		
-		//不能缩小任务
+		// 不能缩小任务
 		result = result && ((noonCB.isChecked() && sharedPreferences.getBoolean(XueBaYH.NOON_EN, false)) ? ((noonEnd >= sharedPreferences.getLong(XueBaYH.NOON_END, 0)) && (noonBegin <= sharedPreferences.getLong(XueBaYH.NOON_BEGIN, 0))) : true);
 		result = result && ((nightCB.isChecked() && sharedPreferences.getBoolean(XueBaYH.NIGHT_EN, false)) ? ((nightEnd >= sharedPreferences.getLong(XueBaYH.NIGHT_END, 0)) && (nightBegin <= sharedPreferences.getLong(XueBaYH.NIGHT_BEGIN, 0))) : true);
 		result = result && ((studyCB.isChecked() && sharedPreferences.getBoolean(XueBaYH.STUDY_EN, false)) ? (studyEnd >= sharedPreferences.getLong(XueBaYH.STUDY_END, 0)) : true);
 		
-		//手机号更改要通知
+		// 手机号更改要通知
 		String oldPhoneString = sharedPreferences.getString(XueBaYH.PHONE_NUM, XueBaYH.myself ? XueBaYH.我的监督人s : XueBaYH.我s);
 		String newPhoneString = phoneTV.getText().toString();
 		
