@@ -53,6 +53,7 @@ public class MainActivity extends Activity
 	private Button				okButton;
 	private Button				logoutButton;
 	private Button				sendStatusButton;
+	private Button				screenButton;
 	// private EditText phoneText;
 	private TextView			phoneTV;
 	private TextView			toWhomTV;
@@ -342,10 +343,19 @@ public class MainActivity extends Activity
 				builder.create().show();
 			}
 		});
-
 		sendStatusButton.setVisibility(XueBaYH.getApp().getRennClient().isLogin() ? View.VISIBLE : View.GONE);
 		
-		// phoneText = (EditText) findViewById(R.id.phoneNum_et);
+		screenButton = (Button)findViewById(R.id.screen_settings_b);
+		screenButton.setOnClickListener(new OnClickListener()
+		{
+			@Override
+			public void onClick(View v)
+			{
+				Intent intent = new Intent(MainActivity.this, ScreenSettingActivity.class);
+				startActivity(intent);
+			}
+		});
+		
 		phoneTV = (TextView) findViewById(R.id.phone_tv);
 		toWhomTV = (TextView) findViewById(R.id.to_whom_tv);
 		
@@ -389,7 +399,6 @@ public class MainActivity extends Activity
 																	@Override
 																	public void onCheckedChanged(final CompoundButton cb, boolean isChecked)
 																	{
-																		// setConfirmPhone(false);
 																		backPressed = false;
 																		if (isChecked && (!initingData))
 																		{

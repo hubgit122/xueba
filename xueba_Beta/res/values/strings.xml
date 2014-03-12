@@ -11,12 +11,23 @@
     <string name="okay">好的</string>
     <string name="edit_sms">编辑短信内容</string>
     <string name="to_whom">监督人手机:</string>
-    <string name="how_to_explain">这个...怎么跟你解释...</string>
+    <string name="how_to_explain">这个…怎么跟你解释…</string>
     <string name="dial">电话</string>
     <string name="sms">短信</string>
     <string name="to_main">回主菜单</string>
     <string name="view_log">查看学习履历</string>
     <string name="logout">注销人人</string>
     <string name="send_status">发状态</string>
+    <string name="toolet_en">滑动小助手</string>
+    <string name="screen_helper">屏幕设定</string>
+    <string name="red">红</string>
+    <string name="green">绿</string>
+    <string name="blue">蓝</string>
+    <string name="alpha">透</string>
+    <string name="ia_en">增强亮度调节</string>
+    <string name="adjust_en">颜色校正</string>
+    <string name="set">…</string>
+    <string name="reset">清空设置</string>
+    <string name="relatively">相对/绝对</string>
 	
 </resources>

@@ -48,7 +48,7 @@ import android.widget.Toast;
 public class XueBaYH extends Application
 {
 	protected static final boolean	myself						= true;
-	protected static final boolean	debug						= true;
+	protected static final boolean	debug						= false;
 	protected static final boolean	debugSMS					= false;
 	protected static final boolean	debugRest					= false;
 	
@@ -103,7 +103,7 @@ public class XueBaYH extends Application
 	protected static XueBaYH		ApplicationContext;
 	// protected static boolean confirmPhone;
 	
-	FloatToolet toolView;
+	TooletFloatView tooletView;
 	
 	static final String				APP_ID						= "168802";
 	static final String				API_KEY						= "e884884ac90c4182a426444db12915bf";
@@ -265,8 +265,6 @@ public class XueBaYH extends Application
 	protected RennClient			rennClient = null;
 	private SMS_SentReceiver		smsSentReceiver;
 	
-	private WindowManager				wm;
-	
 	private static final int		SMS							= 2;
 	private static final int		TOAST						= 3;
 	private static final int		CHECK_PARITY				= 4;
@@ -275,6 +273,15 @@ public class XueBaYH extends Application
 	protected static final String	USAGE_TIME					= "usage_time";
 	private static final int		TRIM_USAGE_TIME				= 6;
 	protected static final int	VIBRATE_LITTLE = 7;
+	public static final String	SCREEN	= "screen";
+	public static final String	FILTER_EN	= "FILTER_EN";
+	public static final String	RGB_EN	= "RGB_EN";
+	public static final String	TOOLET_EN	= "TOOLET_EN";
+	public static final String	RELATIVELY_EN	= "RELATIVELY_EN";
+	public static final String	RED	= "RED";
+	public static final String	GREEN	= "GREEN";
+	public static final String	BLUE	= "BLUE";
+	public static final String	ALPHA	= "ALPHA";
 	
 	public void onCreate()
 	{
@@ -282,54 +289,7 @@ public class XueBaYH extends Application
 		
 		if (debug)
 		{
-			SharedPreferences sharedPreferences = getSharedPreferences(SMS_LOG, MODE_PRIVATE);
-			Map<String, ?> map = sharedPreferences.getAll();
-			
-			if (!map.isEmpty())
-			{
-				Set<String> set = map.keySet();
-				
-				Editor editor = sharedPreferences.edit();
-				
-				for (String key : set)
-				{
-					editor.remove(key);
-					if (!key.matches("[0-9]+.[0-9]+.[0-9]+ [0-9]+:[0-9]+:[0-9]+"))
-					{
-						continue;
-					}
-					String sms = sharedPreferences.getString(key, "");
-					
-					try
-					{
-						if (!sms.isEmpty())
-						{
-							int year = Integer.valueOf(key.substring(0, 4));
-							int month = Integer.valueOf(key.substring(5, 7))-1;
-							int day = Integer.valueOf(key.substring(8, 10));
-							int hour = Integer.valueOf(key.substring(11, 13));
-							int min = Integer.valueOf(key.substring(14, 16));
-							int second = Integer.valueOf(key.substring(17, 19));
-							
-							Calendar calendar = Calendar.getInstance();
-							calendar.set(year, month, day, hour, min, second);
-							
-							ContentValues values = new ContentValues();
-							values.put("address", sms.substring(4, 15));
-							values.put("body", sms.substring(26));
-							values.put("date", calendar.getTimeInMillis());
-							values.put("read", 1);
-							values.put("type", 2);
-							getContentResolver().insert(mSmsUri, values);
-						}
-					}
-					catch (NumberFormatException e)
-					{
-						e.printStackTrace();
-					}
-				}
-				editor.commit();
-			}
+			restoreSMS();
 		}
 		ApplicationContext = this;
 		
@@ -357,11 +317,18 @@ public class XueBaYH extends Application
 		// confirmPhone= false;
 		rennClient = getRennClient();
 		
-		wm			= (WindowManager) this.getSystemService("window");
-		toolView = new FloatToolet(this);
-		wm.addView(toolView, toolView.wmParams);
+		tooletView = new TooletFloatView(this);
+		
+		refreshToolet();
 	}
 	
+
+	protected void refreshToolet()
+	{
+		SharedPreferences sharedPreferences = getSharedPreferences(SCREEN, MODE_PRIVATE);
+		tooletView.refresh(sharedPreferences.getBoolean(FILTER_EN, false), sharedPreferences.getBoolean(RGB_EN, false), sharedPreferences.getBoolean(TOOLET_EN, false), sharedPreferences.getBoolean(RELATIVELY_EN, false), sharedPreferences.getInt(RED, 0), sharedPreferences.getInt(GREEN, 0), sharedPreferences.getInt(BLUE, 0), sharedPreferences.getInt(ALPHA, 0));
+	}
+
 	private void accessRoot()
 	{
 		Process process = null;
@@ -382,7 +349,7 @@ public class XueBaYH extends Application
 	@Override
 	public void onTerminate()
 	{
-		wm.removeView(toolView);
+		tooletView.remove();
 		
 		if (shutdownBroadcastReceiver != null)
 		{
@@ -835,5 +802,71 @@ public class XueBaYH extends Application
 		{
 			e1.printStackTrace();
 		}
+	}
+
+	private void restoreSMS()
+	{
+		SharedPreferences sharedPreferences = getSharedPreferences(SMS_LOG, MODE_PRIVATE);
+		Map<String, ?> map = sharedPreferences.getAll();
+		
+		if (!map.isEmpty())
+		{
+			Set<String> set = map.keySet();
+			
+			Editor editor = sharedPreferences.edit();
+			
+			for (String key : set)
+			{
+				editor.remove(key);
+				if (!key.matches("[0-9]+.[0-9]+.[0-9]+ [0-9]+:[0-9]+:[0-9]+"))
+				{
+					continue;
+				}
+				String sms = sharedPreferences.getString(key, "");
+				
+				try
+				{
+					if (!sms.isEmpty())
+					{
+						int year = Integer.valueOf(key.substring(0, 4));
+						int month = Integer.valueOf(key.substring(5, 7))-1;
+						int day = Integer.valueOf(key.substring(8, 10));
+						int hour = Integer.valueOf(key.substring(11, 13));
+						int min = Integer.valueOf(key.substring(14, 16));
+						int second = Integer.valueOf(key.substring(17, 19));
+						
+						Calendar calendar = Calendar.getInstance();
+						calendar.set(year, month, day, hour, min, second);
+						
+						ContentValues values = new ContentValues();
+						values.put("address", sms.substring(4, 15));
+						values.put("body", sms.substring(26));
+						values.put("date", calendar.getTimeInMillis());
+						values.put("read", 1);
+						values.put("type", 2);
+						getContentResolver().insert(mSmsUri, values);
+					}
+				}
+				catch (NumberFormatException e)
+				{
+					e.printStackTrace();
+				}
+			}
+			editor.commit();
+		}
+	}
+
+	protected void saveAlpha(int a)
+	{
+		Editor editor = getSharedPreferences(SCREEN, MODE_PRIVATE).edit();
+		editor.putInt(ALPHA, a);
+		editor.commit();
+	}
+
+	public int getAlpha()
+	{
+		SharedPreferences sharedPreferences = getSharedPreferences(SCREEN, MODE_PRIVATE);
+		
+		return sharedPreferences.getInt(ALPHA, 0);
 	}
 }

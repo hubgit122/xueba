@@ -51,6 +51,7 @@ import java.util.Calendar;
 
 import android.annotation.SuppressLint;
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.graphics.PixelFormat;
 import android.graphics.Rect;
 import android.provider.Settings;
@@ -63,20 +64,22 @@ import android.view.WindowManager;
 import android.view.WindowManager.LayoutParams;
 import android.widget.ImageView;
 
-class FloatToolet extends ImageView
+class TooletFloatView extends ImageView
 {
+	private static final int				viewHeight	= 200;
+	private static final int				viewWidth	= 200;
 	private WindowManager					wm			= (WindowManager) getContext().getApplicationContext().getSystemService("window");
-	private FilterFloatView filterFloatView;
+	protected FilterFloatView					filterFloatView;
 	// 此wmParams为获取的全局变量，用以保存悬浮窗口的属性
 	protected WindowManager.LayoutParams	wmParams	= new WindowManager.LayoutParams();
 	private boolean							adjustingIA;
 	
-	public FloatToolet(Context context)
+	public TooletFloatView(Context context)
 	{
 		super(context);
-
+		
 		screenWidth = wm.getDefaultDisplay().getWidth();
-		screenHeight = wm.getDefaultDisplay().getHeight();  
+		screenHeight = wm.getDefaultDisplay().getHeight();
 		
 		setImageResource(R.drawable.toolet_button);
 		wmParams = new WindowManager.LayoutParams();
@@ -90,14 +93,17 @@ class FloatToolet extends ImageView
 		wmParams.x = 0;
 		wmParams.y = 0;
 		
-		wmParams.width = 150;
-		wmParams.height = 150;
+		wmParams.width = viewWidth;
+		wmParams.height = viewHeight;
 		
 		wmParams.alpha = 0.6f;
 		
 		adjustingIA = false;
+		
 		filterFloatView = new FilterFloatView(getContext());
-		filterFloatView.show();
+		refreshStatusHeight();
+		
+		alpha = XueBaYH.getApp().getAlpha();
 	}
 	
 	private float	iconStartX;
@@ -109,18 +115,20 @@ class FloatToolet extends ImageView
 	private float	screenStartY;
 	
 	private boolean	skip;
-
-	private int	brightness;
-	protected int screenWidth;
-	protected int screenHeight;
-	private boolean	relatively = false;
+	
+	private int		brightness;
+	protected int	screenWidth;
+	protected int	screenHeight;
+	private boolean	relatively	= false;
+	private float	resizeScale = 0.3f;
+	private boolean	showing = false;
+	protected int statusBarHeight;
+	private float	alpha;
 	
 	@Override
 	public boolean onTouchEvent(MotionEvent event)
 	{
-		Rect frame = new Rect();
-		getWindowVisibleDisplayFrame(frame);
-		int statusBarHeight = frame.top;
+		refreshStatusHeight();
 		
 		switch (event.getAction())
 		{
@@ -135,11 +143,15 @@ class FloatToolet extends ImageView
 				
 				adjustingIA = false;
 				skip = false;
+				
+				wmParams.width = viewWidth;
+				wmParams.height = viewHeight;
 				break;
 			case MotionEvent.ACTION_MOVE:
 				// 调整图标位置
-				x = event.getRawX(); // getRawX()获取相对屏幕的坐标，即以屏幕左上角为原点
-				y = event.getRawY() - statusBarHeight;
+				x = ((event.getRawX()>=iconStartX)&&(event.getRawX()-iconStartX+viewWidth<=screenWidth))?event.getRawX():x; // getRawX()获取相对屏幕的坐标，即以屏幕左上角为原点
+				y = ((event.getRawY() - iconStartY>=statusBarHeight)&&(event.getRawY()-iconStartY+viewHeight<=screenHeight))?event.getRawY() - statusBarHeight : y;
+				
 				updateViewPosition();
 				
 				// 判断是否在原地长按
@@ -155,7 +167,7 @@ class FloatToolet extends ImageView
 					setImageResource(R.drawable.toolet_button_i_a);
 					
 					brightness = this.getScreenBrightness();
-					if (getScreenMode()==1)
+					if (getScreenMode() == 1)
 					{
 						setScreenMode(0);
 					}
@@ -163,29 +175,62 @@ class FloatToolet extends ImageView
 				
 				if (adjustingIA)
 				{
-					if (relatively )
+					if (relatively)
 					{
-						setScreenBrightness((int)(brightness*(1+(x-screenStartX)/screenWidth)));
-						filterFloatView.setAlpha((int)(brightness*(1+(y-screenStartY)/screenWidth)));
+						setScreenBrightness(Math.max((int) (brightness * (1 + (x - screenStartX) / (screenWidth - viewWidth))),5));
+						filterFloatView.setAlpha(Math.max((int) (alpha * (1 + (y - screenStartY) / (screenHeight - statusBarHeight - viewHeight))),5));
 					}
 					else
 					{
-						setScreenBrightness((int)(255*x/screenWidth));
-						filterFloatView.setAlpha((int)(255*y/screenHeight));
+						setScreenBrightness(Math.max((int) (255 * (x - iconStartX) / (screenWidth - viewWidth)),5));
+						filterFloatView.setAlpha(Math.max((int) (255 * (y - iconStartY) / (screenHeight - statusBarHeight - viewHeight)),5));
 					}
 				}
 				break;
 			
 			case MotionEvent.ACTION_UP:
 				setImageResource(R.drawable.toolet_button);
+				alpha = XueBaYH.getApp().getAlpha();
+				updateSize();
 				break;
 		}
-		// String string = "("+x+","+y+")   ("+mTouchStartX+","+mTouchStartY+")"
-		// + event.getDownTime();
-		// Log.i("xueba", string);
 		return false;
 	}
 
+	private void refreshStatusHeight()
+	{
+		Rect frame = new Rect();
+		getWindowVisibleDisplayFrame(frame);
+		statusBarHeight = frame.top;
+	}
+
+	private void updateSize()
+	{
+		if (x - iconStartX < 100)
+		{
+			x = iconStartX;
+			wmParams.width = (int) (resizeScale * viewWidth);
+		}
+		if (y - iconStartY < 100)
+		{
+			y = iconStartY;
+			wmParams.height = (int) (resizeScale * viewHeight);
+		}
+		
+		if (x - iconStartX + viewWidth +100 > screenWidth)
+		{
+			x = screenWidth + iconStartX - resizeScale * viewWidth;
+			wmParams.width = (int) (resizeScale * viewWidth);
+		}
+		
+		if (y - iconStartY + viewHeight  +100 > screenHeight)
+		{
+			y = screenHeight - statusBarHeight + iconStartY - resizeScale * viewHeight;
+			wmParams.height = (int) (resizeScale  * viewHeight);
+		}
+		updateViewPosition();
+	}
+	
 	/**
 	 * 获得当前屏幕亮度的模式 SCREEN_BRIGHTNESS_MODE_AUTOMATIC=1 为自动调节屏幕亮度
 	 * SCREEN_BRIGHTNESS_MODE_MANUAL=0 为手动调节屏幕亮度
@@ -258,13 +303,70 @@ class FloatToolet extends ImageView
 		wmParams.y = (int) (y - iconStartY);
 		wm.updateViewLayout(this, wmParams);
 	}
-	
-	// new Runnable()
-	// {
-	// @Override
-	// public void run()
-	// {
-	// wait(millis)
-	// }
-	// }.run();
+
+	public void refresh(boolean filterEn, boolean rgbEn, boolean tooletEn, boolean relativelyEn, int r, int g, int b, int a)
+	{
+		if (!filterEn)
+		{
+			filterFloatView.remove();
+		}
+		else
+		{
+			filterFloatView.refresh(filterEn,r,g,b,a);
+		}
+		
+		if(!rgbEn)
+		{
+			filterFloatView.resetColor();
+		}
+		
+		if (!tooletEn||!filterEn)
+		{
+			try
+			{
+				remove();
+			}
+			catch (Exception e)
+			{
+			}
+		}
+		else
+		{
+			show();
+		}
+		
+		relatively = relativelyEn;
+	}
+
+	public void show()
+	{
+		if (!showing)
+		{
+			try
+			{
+				wm.addView(this, this.wmParams);
+				updateSize();
+				showing = true;
+			}
+			catch (Exception e)
+			{
+			}
+		}
+		else
+		{
+			wm.updateViewLayout(this, this.wmParams);
+		}
+	}
+
+	public void remove()
+	{
+		try
+		{
+			wm.removeView(this);
+			showing = false;
+		}
+		catch (Exception e)
+		{
+		}
+	}
 }

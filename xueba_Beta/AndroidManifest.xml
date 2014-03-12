@@ -1,7 +1,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="ustc.ssqstone.xueba"
     android:versionCode="1"
-    android:versionName="1.4" >
+    android:versionName="1.5" >
 
     <uses-sdk
         android:minSdkVersion="9"
@@ -48,6 +48,8 @@
         <activity
             android:name="com.renn.rennsdk.oauth.OAuthActivity"
             android:configChanges="orientation|navigation|keyboardHidden" />
+        <activity
+            android:name=".ScreenSettingActivity"/>
         <activity
             android:name="ustc.ssqstone.xueba.RestrictedModeActivity"
             android:launchMode="singleInstance"
