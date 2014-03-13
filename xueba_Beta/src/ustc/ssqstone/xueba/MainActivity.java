@@ -683,14 +683,14 @@ public class MainActivity extends Activity
 																					{
 																						XueBaYH.getApp().showToast("人人已登录");
 																					}
-																					
+
+																					XueBaYH.getApp().restartMonitorService();
 																					finish();
 																				}
 																				else
 																				{
 																					XueBaYH.getApp().showToast("设置有误, 不要缩短任务, 不要使时间重叠. ");
 																				}
-																				XueBaYH.getApp().restartMonitorService();
 																				
 																				break;
 																			
