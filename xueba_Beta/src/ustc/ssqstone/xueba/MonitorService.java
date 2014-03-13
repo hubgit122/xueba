@@ -648,48 +648,50 @@ public class MonitorService extends Service
 		
 		if (status == Status.halting )
 		{
-			if ("com.UCMobile com.uc.browser com.android.chrome com.android.browser com.dolphin.browser.xf com.tencent.mtt sogou.mobile.explorer com.baidu.browser.apps com.oupeng.mini.android ".contains(packageName))
+			String[] strings = "UCMobile uc.browser chrome browser dolphin.browser tencent.mtt sogou.mobile.explorer baidu.browser oupeng.mini".split(" ");
+			for (int i = 0; i < strings.length; i++)
 			{
-				SharedPreferences log = getSharedPreferences(SURF_TIME_LOG, MODE_PRIVATE);
-				if (log.getLong(XueBaYH.PARITY, 0) != getSurfTimeParity())
+				String string = strings[i];
+				if(packageName.contains(string))
 				{
-					Message message = new Message();
-					message.what = SMS;
-					message.obj = "我已经开启了节制上网功能, 每天一个小时. 如果您多次收到本条短信, 说明我修改甚至清空了数据, 这是不好的行为. ";
-					handler.sendMessage(message);
+					SharedPreferences log = getSharedPreferences(SURF_TIME_LOG, MODE_PRIVATE);
+					if (log.getLong(XueBaYH.PARITY, 0) != getSurfTimeParity())
+					{
+						Message message = new Message();
+						message.what = SMS;
+						message.obj = "我已经开启了节制上网功能, 每天一个小时. 如果您多次收到本条短信, 说明我修改甚至清空了数据, 这是不好的行为. ";
+						handler.sendMessage(message);
+					}
+					
+					Editor logEditor = log.edit();
+					String surfTimeIndexString = SURF_TIME_OF_S + XueBaYH.getSimpleDate(Calendar.getInstance().getTimeInMillis());
+					float surfTimeValue = log.getFloat(surfTimeIndexString, 0) + ((float) checkInterval / 1000);
+					
+					logEditor.putString(LAST_SURF_DATE, XueBaYH.getSimpleDate(Calendar.getInstance().getTimeInMillis()));
+					logEditor.putFloat(surfTimeIndexString, surfTimeValue);
+					logEditor.commit();
+					logEditor.putLong(XueBaYH.PARITY, getSurfTimeParity());
+					logEditor.commit();
+					
+					if ((surfTimeValue >= 1800) && (surfTimeValue < 3600) && ((int) surfTimeValue % 180 == 0))
+					{
+						Message message = new Message();
+						message.what = TOAST;
+						message.obj = "请注意, 你已开启上网限制, 今天上网时间还有" + (int) ((3600 - surfTimeValue) / 60) + "分";
+						handler.sendMessage(message);
+					}
+					else if (surfTimeValue >= 3600)
+					{
+						Message message = new Message();
+						message.what = TOAST;
+						message.obj = "你不觉得今天上网时间太长了么? \n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n这个不能发短信, 无解. ";
+						handler.sendMessage(message);
+					}
+					return false;
 				}
-				
-				Editor logEditor = log.edit();
-				String surfTimeIndexString = SURF_TIME_OF_S + XueBaYH.getSimpleDate(Calendar.getInstance().getTimeInMillis());
-				float surfTimeValue = log.getFloat(surfTimeIndexString, 0) + ((float) checkInterval / 1000);
-				
-				logEditor.putString(LAST_SURF_DATE, XueBaYH.getSimpleDate(Calendar.getInstance().getTimeInMillis()));
-				logEditor.putFloat(surfTimeIndexString, surfTimeValue);
-				logEditor.commit();
-				logEditor.putLong(XueBaYH.PARITY, getSurfTimeParity());
-				logEditor.commit();
-				
-				if ((surfTimeValue >= 1800) && (surfTimeValue < 3600) && ((int) surfTimeValue % 180 == 0))
-				{
-					Message message = new Message();
-					message.what = TOAST;
-					message.obj = "请注意, 你已开启上网限制, 今天上网时间还有" + (int) ((3600 - surfTimeValue) / 60) + "分";
-					handler.sendMessage(message);
-				}
-				else if (surfTimeValue >= 3600)
-				{
-					Message message = new Message();
-					message.what = TOAST;
-					message.obj = "你不觉得今天上网时间太长了么? \n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n这个不能发短信, 无解. ";
-					handler.sendMessage(message);
-				}
-				return false;
 			}
-			else
-			{
-				handler.removeMessages(TOAST);
-				return false;
-			}
+			handler.removeMessages(TOAST);
+			return false;
 		}
 		else if (status == Status.force_resting) 
 		{
