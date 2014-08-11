@@ -648,7 +648,7 @@ public class MonitorService extends Service
 		
 		if (status == Status.halting )
 		{
-			String[] strings = "UCMobile uc.browser chrome browser dolphin.browser tencent.mtt sogou.mobile.explorer baidu.browser oupeng.mini".split(" ");
+			String[] strings = "UCMobile uc.browser chrome browser dolphin.browser tencent.mtt sogou.mobile.explorer baidu.browser oupeng.mini opera".split(" ");
 			for (int i = 0; i < strings.length; i++)
 			{
 				String string = strings[i];
