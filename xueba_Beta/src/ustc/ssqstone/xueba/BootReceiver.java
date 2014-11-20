@@ -23,6 +23,8 @@ public class BootReceiver extends BroadcastReceiver
 				Log.i("xueba","开机");
 			}
 
+
+
 			XueBaYH.getApp().trimUsageTime(-1);
 			XueBaYH.getApp().checkStatus();
 			XueBaYH.getApp().restartMonitorService();
