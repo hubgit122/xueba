@@ -3,8 +3,6 @@ package ustc.ssqstone.xueba;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
-import android.drm.DrmStore.Action;
-import android.util.Log;
 
 /**
  * 捕获开机通知, 启动监控服务
@@ -21,8 +19,10 @@ public class BootReceiver extends BroadcastReceiver
 			if (XueBaYH.debug)
 			{
 				XueBaYH.getApp().showToast("开机");
-				Log.i("xueba","开机");
+				//Log.i("xueba", "开机");
 			}
+			
+			XueBaYH.getApp().trimUsageTime(-1);
 			XueBaYH.getApp().checkStatus();
 			XueBaYH.getApp().restartMonitorService();
 		}

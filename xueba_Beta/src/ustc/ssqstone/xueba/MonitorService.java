@@ -1,9 +1,13 @@
 package ustc.ssqstone.xueba;
 
+import ustc.ssqstone.xueba.R;
+
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
+import java.util.Date;
 import java.util.List;
 
+import android.annotation.SuppressLint;
 import android.app.ActivityManager;
 import android.app.ActivityManager.RunningTaskInfo;
 import android.app.Service;
@@ -14,12 +18,17 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.content.SharedPreferences.Editor;
+import android.graphics.PixelFormat;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.os.ConditionVariable;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Message;
+import android.util.Log;
+import android.view.Gravity;
+import android.view.WindowManager;
+import android.view.WindowManager.LayoutParams;
 
 /**
  * 发现一个bug，studyEn的值会在我看不到的地方发生翻转。
@@ -50,24 +59,25 @@ import android.os.Message;
  */
 public class MonitorService extends Service
 {
-	private static final int	REST_TIME	= XueBaYH.debugRest?10*1000:60*1000;
-	private static final int	MAX_USE_TIME	= XueBaYH.debugRest? 30*1000 : 1000 * 60 * 45;
+	private static final int	REST_TIME		= XueBaYH.debugRest ? 10 * 1000 : 120 * 1000;
+	private static final int	MAX_USE_TIME	= XueBaYH.debugRest ? 10 * 1000 : 1000 * 60 * 45;
 	private static final String	LAST_SURF_DATE	= "last surf date";
 	private static final String	SURF_TIME_OF_S	= "surf time of ";
-	// private static final String SURF_TIME_OF_TODAY_S =
-	// "surf time of today: ";
 	private boolean				screenLocked	= false;
 	private static final int	SMS				= 2;
 	private static final int	TOAST			= 3;
 	// private static final int PUNISH=1;
 	private static final int	TO_RESTRICT		= 4;
 	private static final String	SURF_TIME_LOG	= "surf_time_log";
-	// private static final int INT_ACC = 5;
-	// protected static final int INT_ZERO = 6;
+	private static final int	ADD_VIEW		= 5;
+	private static final int	REMOVE_VIEW		= 6;
 	/**
 	 * 单位是毫秒.
 	 */
 	private int					checkInterval;
+	/**
+	 * 全局变量, 记录本次任务是否被通知. 
+	 */
 	private boolean				informed;
 	private Handler				handler			= new Handler()
 												{
@@ -76,12 +86,30 @@ public class MonitorService extends Service
 													{
 														switch (msg.what)
 														{
+															case REMOVE_VIEW:
+																try
+																{
+																	wm.removeView(myFV);
+																}
+																catch (Exception e)
+																{
+																}
+																break;
+															case ADD_VIEW:
+																try
+																{
+																	wm.addView(myFV, wmParams);
+																}
+																catch (Exception e)
+																{
+																}
+																break;
 															case SMS:
 																SharedPreferences values = getSharedPreferences(XueBaYH.VALUES, MODE_PRIVATE);
-																XueBaYH.getApp().sendSMS((String) msg.obj, values.getString(XueBaYH.PHONE_NUM, XueBaYH.myself ? XueBaYH.我的监督人s : XueBaYH.我s), null);
+																XueBaYH.sendSMS((String) msg.obj, values.getString(XueBaYH.PHONE_NUM, XueBaYH.myself ? XueBaYH.我的监督人s : XueBaYH.我s), null);
 																break;
 															case TOAST:
-																XueBaYH.getApp().showToast((String) msg.obj);
+																XueBaYH.showToast((String) msg.obj);
 																break;
 															case TO_RESTRICT:
 																Intent intent = new Intent(MonitorService.this, RestrictedModeActivity.class);
@@ -116,6 +144,18 @@ public class MonitorService extends Service
 		}
 	}
 	
+	protected WindowManager				wm				= null;
+	private WindowManager.LayoutParams	wmParams		= null;
+	private RestView					myFV			= null;
+	protected int						screenWidth;
+	protected int						screenHeight;
+	static MonitorService				monitorService	= null;
+	
+	static protected MonitorService getService()
+	{
+		return monitorService;
+	}
+	
 	@Override
 	public void onCreate()
 	{
@@ -136,31 +176,10 @@ public class MonitorService extends Service
 		intentFilter = new IntentFilter();
 		intentFilter.addAction(Intent.ACTION_SCREEN_OFF);
 		registerReceiver(screenOffBroadcastReceiver, intentFilter);
-	}
-	
-	/**
-	 * 更新使用时间. 如果参数是负数, 根据锁屏时间计算. 如果是非负数, 采用此值. 
-	 * @param value
-	 */
-	protected void trimUsageTime(int value)
-	{
-		SharedPreferences sharedPreferences = getSharedPreferences(XueBaYH.VALUES, MODE_PRIVATE);
-			
-		if (value<0)
-		{
-			if (sharedPreferences.getLong(XueBaYH.LOCKED_TIME, 0) + 2 * 60 * 1000 < Calendar.getInstance().getTimeInMillis())
-			{
-				EditorWithParity editorWithParity = new EditorWithParity(sharedPreferences);
-				editorWithParity.putInt(XueBaYH.USAGE_TIME, 0);
-				editorWithParity.commit();
-			}
-		}
-		else 
-		{
-			EditorWithParity editorWithParity = new EditorWithParity(sharedPreferences);
-			editorWithParity.putInt(XueBaYH.USAGE_TIME, value);
-			editorWithParity.commit();
-		}
+		
+		createRestView();
+		
+		monitorService = this;
 	}
 	
 	protected void logLockedTime()
@@ -205,44 +224,52 @@ public class MonitorService extends Service
 			removeRestriction = true;
 			tmpStatus = Status.sleeping_night;
 		}
-		if ((this.status==Status.force_resting)&&(startTime + REST_TIME <= now))
+		
+		if ((status == Status.force_resting) && (startTime + REST_TIME <= now))
 		{
-			tmpStatus = Status.force_resting;
-			removeRestriction = true;
 			editor.putInt(XueBaYH.USAGE_TIME, 0);
+			removeRestriction = true;
+			tmpStatus = Status.force_resting;
 		}
 		
 		if (removeRestriction)
 		{
+			editor.commit();
 			status = Status.halting;
 			informed = false;
-			editor.commit();
-			trimUsageTime(0);
-			XueBaYH.getApp().destoryRestrictedActivity(tmpStatus.getLocalString());
+			
+			if (tmpStatus == Status.force_resting)
+			{
+				Log.d("remove", "" + now + "::" + getSharedPreferences(XueBaYH.VALUES, MODE_PRIVATE).getInt(XueBaYH.USAGE_TIME, 0) + ":" + tmpStatus);
+				handler.sendEmptyMessage(REMOVE_VIEW);
+			}
+			else
+			{
+				XueBaYH.destoryRestrictedActivity(tmpStatus.getLocalString());
+			}
 		}
 		
-		if (screenLocked)
+		if (status == Status.halting)
 		{
-			this.status = Status.halting;
-		}
-		else if(status == Status.halting)
-		{
-			if (getSharedPreferences(XueBaYH.VALUES, MODE_PRIVATE).getInt(XueBaYH.USAGE_TIME, 0) > MAX_USE_TIME)
+			if (getSharedPreferences(XueBaYH.VALUES, MODE_PRIVATE).getInt(XueBaYH.USAGE_TIME, 0) > MAX_USE_TIME && (tmpStatus != Status.force_resting))
 			{
+				Log.d("add", "" + now + "::" + getSharedPreferences(XueBaYH.VALUES, MODE_PRIVATE).getInt(XueBaYH.USAGE_TIME, 0) + ":" + tmpStatus);
+				handler.sendEmptyMessage(ADD_VIEW);
+				
 				status = Status.force_resting;
-				startTime = now + MAX_USE_TIME - getSharedPreferences(XueBaYH.VALUES, MODE_PRIVATE).getInt(XueBaYH.USAGE_TIME, 0);
+				startTime = now;
 			}
 			else if ((nightEn) && (nightBegin < now) && (now <= nightEnd))
 			{
 				startTime = nightBegin;
 				status = Status.sleeping_night;
-				// XueBaYH.getApp().setOffLine();
+				// XueBaYH.setOffLine();
 			}
 			else if ((noonEn) && (noonBegin < now) && (now <= noonEnd))
 			{
 				startTime = noonBegin;
 				status = Status.sleeping_noon;
-				// XueBaYH.getApp().setOffLine();
+				// XueBaYH.setOffLine();
 			}
 			else if ((studyEn) && (now <= studyEnd))
 			{
@@ -267,7 +294,7 @@ public class MonitorService extends Service
 				inform = true;
 				tmpStatus = Status.sleeping_noon;
 			}
-			else if ((getSharedPreferences(XueBaYH.VALUES, MODE_PRIVATE).getInt(XueBaYH.USAGE_TIME, 0)+30000>MAX_USE_TIME)&&(getSharedPreferences(XueBaYH.VALUES, MODE_PRIVATE).getInt(XueBaYH.USAGE_TIME, 0) < MAX_USE_TIME))
+			else if ((getSharedPreferences(XueBaYH.VALUES, MODE_PRIVATE).getInt(XueBaYH.USAGE_TIME, 0) + 30000 > MAX_USE_TIME) && (getSharedPreferences(XueBaYH.VALUES, MODE_PRIVATE).getInt(XueBaYH.USAGE_TIME, 0) < MAX_USE_TIME))
 			{
 				informed = true;
 				inform = true;
@@ -276,8 +303,8 @@ public class MonitorService extends Service
 			
 			if (inform)
 			{
-				XueBaYH.getApp().showToast("请注意:\n距离" + tmpStatus.getLocalString() + "开始还有不到30秒! ");
-				XueBaYH.getApp().vibrateOh();
+				XueBaYH.showToast("请注意:\n距离" + tmpStatus.getLocalString() + "开始还有不到30秒! ");
+				XueBaYH.vibrateOh();
 			}
 		}
 	}
@@ -291,7 +318,7 @@ public class MonitorService extends Service
 	 */
 	private void loadStatus()
 	{
-		XueBaYH.getApp().checkParity(null);
+		XueBaYH.checkParity(null);
 		
 		SharedPreferences sharedPreferences = getSharedPreferences(XueBaYH.VALUES, MODE_PRIVATE);
 		EditorWithParity editor = new EditorWithParity(sharedPreferences);
@@ -315,7 +342,7 @@ public class MonitorService extends Service
 		{
 			editor.putBoolean(XueBaYH.NIGHT_EN, false);
 			nightEn = false;
-			string = "有证据表明我曾经强制退出过. 而且我所定的" + "从" + simpleDateFormat.format(sharedPreferences.getLong(XueBaYH.NIGHT_BEGIN, 0)) + "到" + simpleDateFormat.format(sharedPreferences.getLong(XueBaYH.NIGHT_END, 0)) + "睡觉" + "的计划也没有得到正常的执行, 再口头批评一次! \\timeStamp = " + sharedPreferences.getLong(XueBaYH.NIGHT_END, 0) + "\n";
+			string = "有证据表明我曾经强制退出过. 而且我所定的" + "从" + simpleDateFormat.format(sharedPreferences.getLong(XueBaYH.NIGHT_BEGIN, 0)) + "到" + simpleDateFormat.format(sharedPreferences.getLong(XueBaYH.NIGHT_END, 0)) + "睡觉" + "的计划也没有得到正常的执行, 口头批评一次! \\timeStamp = " + now + "\n";
 			editor.putString(XueBaYH.PENGDING_LOGS, sharedPreferences.getString(XueBaYH.PENGDING_LOGS, "") + string);
 			editor.commit();
 		}
@@ -323,7 +350,7 @@ public class MonitorService extends Service
 		{
 			editor.putBoolean(XueBaYH.NOON_EN, false);
 			noonEn = false;
-			string = "有证据表明我曾经强制退出过. 而且我所定的" + "从" + simpleDateFormat.format(sharedPreferences.getLong(XueBaYH.NOON_BEGIN, 0)) + "到" + simpleDateFormat.format(sharedPreferences.getLong(XueBaYH.NOON_END, 0)) + "睡午觉" + "的计划也没有得到正常的执行, 再口头批评一次! \\timeStamp = " + sharedPreferences.getLong(XueBaYH.NOON_END, 0) + "\n";
+			string = "有证据表明我曾经强制退出过. 而且我所定的" + "从" + simpleDateFormat.format(sharedPreferences.getLong(XueBaYH.NOON_BEGIN, 0)) + "到" + simpleDateFormat.format(sharedPreferences.getLong(XueBaYH.NOON_END, 0)) + "睡午觉" + "的计划也没有得到正常的执行, 口头批评一次! \\timeStamp = " + now + "\n";
 			editor.putString(XueBaYH.PENGDING_LOGS, sharedPreferences.getString(XueBaYH.PENGDING_LOGS, "") + string);
 			editor.commit();
 		}
@@ -331,14 +358,31 @@ public class MonitorService extends Service
 		{
 			editor.putBoolean(XueBaYH.STUDY_EN, false);
 			studyEn = false;
-			string = "有证据表明我曾经强制退出过. 而且我所定的" + "从" + simpleDateFormat.format(sharedPreferences.getLong(XueBaYH.STUDY_BEGIN, 0)) + "到" + simpleDateFormat.format(sharedPreferences.getLong(XueBaYH.STUDY_END, 0)) + "学习" + "的计划也没有得到正常的执行, 再口头批评一次! \\timeStamp = " + sharedPreferences.getLong(XueBaYH.STUDY_END, 0) + "\n";
+			string = "有证据表明我曾经强制退出过. 而且我所定的" + "从" + simpleDateFormat.format(sharedPreferences.getLong(XueBaYH.STUDY_BEGIN, 0)) + "到" + simpleDateFormat.format(sharedPreferences.getLong(XueBaYH.STUDY_END, 0)) + "学习" + "的计划也没有得到正常的执行, 口头批评一次! \\timeStamp = " + now + "\n";
 			editor.putString(XueBaYH.PENGDING_LOGS, sharedPreferences.getString(XueBaYH.PENGDING_LOGS, "") + string);
 			editor.commit();
 		}
 		
-		status = Status.halting;
+		if (status == null || status != Status.force_resting)
+		{
+			status = Status.halting;
+		}
 		
-		refreshCheckInterval();
+		refreshCheckInterval(); //这里刷新状态. 
+		
+		if ((status != Status.halting) && (startTime < now - 60 * 1000)) //说明中途被强退了, 不是开机恰好进入任务. 
+		{
+			if (sharedPreferences.getLong(XueBaYH.LAST_WRITE, 0) < now - 4 * 60 * 1000) //说明退出时间超过了三分钟 因为lastWrite是一分钟写入一次
+			{
+				string = "我在自己所定的" + "从" + simpleDateFormat.format(new Date(startTime)) + "开始" + status.getLocalString() + "的计划被我中途退出, 口头批评一次! \\timeStamp = " + now + "\n";
+				editor.putString(XueBaYH.PENGDING_LOGS, sharedPreferences.getString(XueBaYH.PENGDING_LOGS, "") + string);
+				editor.commit();
+			}
+			//			else 
+			//			{
+			//				XueBaYH.showToast("有证据表明监视任务被强行退出过, 但是退出时间很短, 这次就不追究了. 下次注意! ");
+			//			}
+		}
 	}
 	
 	private Status				status;
@@ -348,7 +392,7 @@ public class MonitorService extends Service
 																public void onReceive(Context context, Intent intent)
 																{
 																	screenLocked = false;
-																	trimUsageTime(-1);
+																	XueBaYH.trimUsageTime(-1);
 																	startThread(MonitorTask.class.getName());
 																}
 															};
@@ -391,6 +435,14 @@ public class MonitorService extends Service
 	// 在设置里强行退出会引发这个函数, 但是使用任务管理软件强行退出就不会进入这个函数了.
 	public void onDestroy()
 	{
+		try
+		{
+			wm.removeView(myFV);
+		}
+		catch (Exception e)
+		{
+		}
+		
 		unregisterReceiver(netStateReceiver);
 		unregisterReceiver(screenOffBroadcastReceiver);
 		unregisterReceiver(screenOnBroadcastReceiver);
@@ -399,7 +451,7 @@ public class MonitorService extends Service
 		
 		super.onDestroy();
 		
-		XueBaYH.getApp().restartMonitorService();
+		XueBaYH.restartMonitorService();
 	}
 	
 	/**
@@ -409,13 +461,13 @@ public class MonitorService extends Service
 	 * 
 	 * @return 校验码
 	 */
-	private long surfTimeParity()
+	private long getSurfTimeParity()
 	{
 		SharedPreferences log = getSharedPreferences(SURF_TIME_LOG, MODE_PRIVATE);
 		String lastSurfDateString = log.getString(LAST_SURF_DATE, "");
 		String surfTimeIndexString = SURF_TIME_OF_S + lastSurfDateString;
 		
-		return (long) log.getFloat(surfTimeIndexString, 12) * (Math.abs(lastSurfDateString.hashCode()) % 2354667);
+		return (String.valueOf(log.getFloat(surfTimeIndexString, 31743)) + lastSurfDateString).hashCode();
 	}
 	
 	protected class StoppableRunnable implements Runnable
@@ -532,7 +584,7 @@ public class MonitorService extends Service
 				
 				if (bufferString.length() > 0)
 				{
-					XueBaYH.getApp().sendRennLog(bufferString);
+					XueBaYH.sendRennLog(bufferString);
 				}
 			}
 		}
@@ -601,53 +653,69 @@ public class MonitorService extends Service
 		
 		if (status == Status.halting)
 		{
-			if ("com.UCMobile com.uc.browser com.android.chrome com.android.browser com.dolphin.browser.xf com.tencent.mtt sogou.mobile.explorer com.baidu.browser.apps com.oupeng.mini.android ".contains(packageName))
+			String[] strings = "UCMobile uc.browser chrome browser dolphin.browser tencent.mtt sogou.mobile.explorer baidu.browser oupeng.mini opera".split(" ");
+			for (int i = 0; i < strings.length; i++)
 			{
-				// 应该给浏览器计时了. 先看是不是到了新的一天.
-				SharedPreferences log = getSharedPreferences(SURF_TIME_LOG, MODE_PRIVATE);
-				if (log.getLong(XueBaYH.PARITY, 0) != surfTimeParity())
+				String string = strings[i];
+				if (packageName.contains(string))
 				{
-					Message message = new Message();
-					message.what = SMS;
-					message.obj = "我已经开启了节制上网功能, 每天一个小时. 如果您多次收到本条短信, 说明我修改甚至清空了数据, 这是不好的行为. ";
-					handler.sendMessage(message);
+					SharedPreferences log = getSharedPreferences(SURF_TIME_LOG, MODE_PRIVATE);
+					if (log.getLong(XueBaYH.PARITY, 0) != getSurfTimeParity())
+					{
+						Message message = new Message();
+						message.what = SMS;
+						message.obj = "我已经开启了节制上网功能, 每天一个小时. 如果您多次收到本条短信, 说明我修改甚至清空了数据, 这是不好的行为. ";
+						handler.sendMessage(message);
+					}
+					
+					Editor logEditor = log.edit();
+					String surfTimeIndexString = SURF_TIME_OF_S + XueBaYH.getSimpleDate(Calendar.getInstance().getTimeInMillis());
+					float surfTimeValue = log.getFloat(surfTimeIndexString, 0) + ((float) checkInterval / 1000);
+					
+					logEditor.putString(LAST_SURF_DATE, XueBaYH.getSimpleDate(Calendar.getInstance().getTimeInMillis()));
+					logEditor.putFloat(surfTimeIndexString, surfTimeValue);
+					logEditor.commit();
+					logEditor.putLong(XueBaYH.PARITY, getSurfTimeParity());
+					logEditor.commit();
+					
+					if ((surfTimeValue >= 1800) && (surfTimeValue < 3600) && ((int) surfTimeValue % 180 == 0))
+					{
+						Message message = new Message();
+						message.what = TOAST;
+						message.obj = "请注意, 你已开启上网限制, 今天上网时间还有" + (int) ((3600 - surfTimeValue) / 60) + "分";
+						handler.sendMessage(message);
+					}
+					else if (surfTimeValue >= 3600)
+					{
+						Message message = new Message();
+						message.what = TOAST;
+						message.obj = "你不觉得今天上网时间太长了么? \n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n这个不能发短信, 无解. ";
+						handler.sendMessage(message);
+					}
+					return false;
 				}
-				
-				Editor logEditor = log.edit();
-				String surfTimeIndexString = SURF_TIME_OF_S + XueBaYH.getSimpleDate(Calendar.getInstance().getTimeInMillis());
-				float surfTimeValue = log.getFloat(surfTimeIndexString, 0) + ((float) checkInterval / 1000);
-				
-				logEditor.putString(LAST_SURF_DATE, XueBaYH.getSimpleDate(Calendar.getInstance().getTimeInMillis()));
-				logEditor.putFloat(surfTimeIndexString, surfTimeValue);
-				logEditor.commit();
-				
-				if ((surfTimeValue >= 1800) && (surfTimeValue < 3600) && ((int) surfTimeValue % 180 == 0))
-				{
-					Message message = new Message();
-					message.what = TOAST;
-					message.obj = "请注意, 你已开启上网限制, 今天上网时间还有" + (int) ((3600 - surfTimeValue) / 60) + "分";
-					handler.sendMessage(message);
-				}
-				else if (surfTimeValue >= 3600)
-				{
-					Message message = new Message();
-					message.what = TOAST;
-					message.obj = "你不觉得今天上网时间太长了么? \n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n这个不能发短信, 无解. ";
-					handler.sendMessage(message);
-				}
-				return false;
 			}
-			else
-			{
-				handler.removeMessages(TOAST);
-				return false;
-			}
+			handler.removeMessages(TOAST);
+			return false;
+		}
+		else if (status == Status.force_resting)
+		{
+			return false;
 		}
 		else
 		{
-			String permitted = (status == Status.force_resting)?"ustc.ssqstone.xueba ": ("ustc.ssqstone.xueba com.android.settings GSW.AddinTimer com.zdworks.android.zdclock com.dianxinos.clock com.android.phone com.android.contacts com.android.mms com.jb.gosms-1 org.dayup.gnotes " + ((status == Status.studying) ? ("com.snda.youni cn.ssdl.bluedict com.ghisler.android.TotalCommander udk.android.reader jp.ne.kutu.Panecal com.diotek.diodict3.phone.samsung.chn com.docin.zlibrary.ui.android com.towords com.youdao.note com.duokan.reader com.baidu.wenku com.nd.android.pandareader com.qq.reader com.lectek.android.sfreader bubei.tingshu de.softxperience.android.noteeverything ") : "")); // ,
+			String permitted = ("ustc.ssqstone.xueba com.android.settings GSW.AddinTimer com.zdworks.android.zdclock com.dianxinos.clock com.android.phone com.android.contacts com.android.mms com.jb.gosms com.snda.youni org.dayup.gnotes de.softxperience.android.noteeverything " + ((status == Status.studying) ? ("cn.ssdl.bluedict com.ghisler.android.TotalCommander udk.android.reader jp.ne.kutu.Panecal com.diotek.diodict3.phone.samsung.chn com.docin.zlibrary.ui.android com.towords com.youdao.note com.duokan.reader com.baidu.wenku com.nd.android.pandareader com.qq.reader com.lectek.android.sfreader bubei.tingshu ") : "")); // ,
 			
-			return (Calendar.getInstance().getTimeInMillis()>startTime)&&!permitted.contains(packageName);
+			for (String nameString : permitted.split(" "))
+			{
+				if (packageName.contains(nameString))
+				{
+					return false;
+				}
+				
+			}
+			
+			return (Calendar.getInstance().getTimeInMillis() > startTime);
 		}
 	}
 	
@@ -696,6 +764,34 @@ public class MonitorService extends Service
 		}
 	}
 	
+	@SuppressLint("NewApi")
+	private void createRestView()
+	{
+		myFV = new RestView(getApplicationContext());
+		myFV.setImageResource(R.drawable.resting);
+		wm = (WindowManager) getApplicationContext().getSystemService("window");
+		
+		screenWidth = wm.getDefaultDisplay().getWidth();
+		screenHeight = wm.getDefaultDisplay().getHeight();
+		
+		wmParams = new WindowManager.LayoutParams();
+		
+		wmParams.type = LayoutParams.TYPE_SYSTEM_ERROR;
+		wmParams.format = PixelFormat.RGBA_8888;
+		
+		wmParams.flags = LayoutParams.FLAG_NOT_TOUCH_MODAL | LayoutParams.FLAG_NOT_FOCUSABLE | LayoutParams.FLAG_NOT_TOUCHABLE;
+		// | LayoutParams.FLAG_DIM_BEHIND ;// | LayoutParams.FLAG_WATCH_OUTSIDE_TOUCH
+		wmParams.gravity = Gravity.LEFT | Gravity.TOP;
+		// 以屏幕左上角为原点，设置x、y初始值
+		wmParams.x = 0;
+		wmParams.y = 0;
+		
+		// 设置悬浮窗口长宽数据
+		wmParams.width = WindowManager.LayoutParams.FILL_PARENT;
+		wmParams.height = WindowManager.LayoutParams.FILL_PARENT;
+		
+		wmParams.alpha = 0.9f;
+	}
 	// private Notification updateNotification()
 	// {
 	// Notification notification;

@@ -1,0 +1,278 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/xx_time_selcet"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/bottom_bar_btn_bg"
+    >
+
+    <RelativeLayout
+        android:id="@+id/time_selcet"
+        android:layout_width="match_parent"
+        android:layout_height="337dp" >
+
+        <RelativeLayout
+            android:id="@+id/RelativeLayout01"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentLeft="true"
+            android:layout_alignParentRight="true"
+            android:layout_alignParentTop="true"
+            android:layout_marginLeft="15dp"
+            android:layout_marginRight="15dp"
+            android:layout_marginTop="18dp"
+            android:background="@drawable/normal_button"
+            android:gravity="top"
+            android:paddingLeft="10dip"
+            android:paddingTop="15dip" >
+
+            <CheckBox
+                android:id="@+id/filter_en_cb"
+                android:layout_width="wrap_content"
+                android:layout_height="fill_parent"
+                android:layout_alignParentLeft="true"
+                android:layout_centerVertical="true"
+                android:text="@string/ia_en" />
+
+        </RelativeLayout>
+
+        <RelativeLayout
+            android:id="@+id/RelativeLayout02"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignLeft="@+id/RelativeLayout01"
+            android:layout_alignRight="@+id/RelativeLayout01"
+            android:layout_below="@+id/RelativeLayout01"
+            android:background="@drawable/normal_button"
+            android:gravity="top"
+            android:paddingLeft="10dip"
+            android:paddingTop="15dip" >
+
+            <CheckBox
+                android:id="@+id/rgb_en_cb"
+                android:layout_width="wrap_content"
+                android:layout_height="fill_parent"
+                android:layout_alignParentLeft="true"
+                android:layout_centerVertical="true"
+                android:text="@string/adjust_en" />
+
+            <Button
+                android:id="@+id/reset_b"
+                style="?android:attr/buttonStyleSmall"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_alignBaseline="@+id/rgb_en_cb"
+                android:layout_alignBottom="@+id/rgb_en_cb"
+                android:layout_alignParentRight="true"
+                android:layout_centerVertical="true"
+                android:text="@string/reset" />
+
+        </RelativeLayout>
+        
+		<RelativeLayout
+            android:id="@+id/RelativeLayout07"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignLeft="@+id/RelativeLayout01"
+            android:layout_alignRight="@+id/RelativeLayout01"
+            android:layout_below="@+id/RelativeLayout02"
+            android:background="@drawable/normal_button"
+            android:gravity="top"
+            android:paddingLeft="10dip"
+            android:paddingTop="15dip" >
+
+            <CheckBox
+                android:id="@+id/toolet_en_cb"
+                android:layout_width="wrap_content"
+                android:layout_height="fill_parent"
+                android:layout_alignParentLeft="true"
+                android:layout_centerVertical="true"
+                android:text="@string/toolet_en" />
+
+            <CheckBox
+                android:id="@+id/relatively_en"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_alignParentRight="true"
+                android:layout_alignParentTop="true"
+                android:layout_centerVertical="true"
+                android:layout_marginRight="10dp"
+                android:text="@string/relatively" />
+
+        </RelativeLayout>
+        
+        <RelativeLayout
+            android:id="@+id/RelativeLayout03"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignLeft="@+id/RelativeLayout01"
+            android:layout_alignRight="@+id/RelativeLayout01"
+            android:layout_below="@+id/RelativeLayout07"
+            android:layout_marginTop="20dp"
+            android:background="@drawable/normal_button"
+            android:gravity="top"
+            android:paddingLeft="10dip"
+            android:paddingTop="15dip" >
+
+            <TextView
+                android:id="@+id/r_tv"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_alignBottom="@+id/r_sb"
+                android:layout_alignParentLeft="true"
+                android:layout_centerVertical="true"
+                android:text="@string/red"
+                android:textAppearance="?android:attr/textAppearanceMedium" />
+            
+            <SeekBar
+                android:id="@+id/r_sb"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_centerVertical="true"
+                android:layout_marginLeft="10dp"
+                android:layout_toLeftOf="@+id/red_b"
+                android:max="255"
+                android:layout_toRightOf="@+id/r_tv" />
+
+            <Button
+                android:id="@+id/red_b"
+                style="?android:attr/buttonStyleSmall"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_alignParentRight="true"
+                android:layout_centerVertical="true"
+                android:text="@string/set" />
+
+        </RelativeLayout>
+        
+        <RelativeLayout
+            android:id="@+id/RelativeLayout04"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignLeft="@+id/RelativeLayout01"
+            android:layout_alignRight="@+id/RelativeLayout01"
+            android:layout_below="@+id/RelativeLayout03"
+            android:background="@drawable/normal_button"
+            android:gravity="top"
+            android:paddingLeft="10dip"
+            android:paddingTop="15dip" >
+
+            <TextView
+                android:id="@+id/g_tv"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_alignBottom="@+id/g_sb"
+                android:layout_alignParentLeft="true"
+                android:layout_centerVertical="true"
+                android:text="@string/green"
+                android:textAppearance="?android:attr/textAppearanceMedium" />
+            
+            <SeekBar
+                android:id="@+id/g_sb"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_centerVertical="true"
+                android:layout_marginLeft="10dp"
+                android:layout_toLeftOf="@+id/green_b"
+                android:max="255"
+                android:layout_toRightOf="@+id/g_tv" />
+
+            <Button
+                android:id="@+id/green_b"
+                style="?android:attr/buttonStyleSmall"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_alignParentRight="true"
+                android:layout_centerVertical="true"
+                android:text="@string/set" />
+
+        </RelativeLayout>
+        
+        <RelativeLayout
+            android:id="@+id/RelativeLayout05"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignLeft="@+id/RelativeLayout01"
+            android:layout_alignRight="@+id/RelativeLayout01"
+            android:layout_below="@+id/RelativeLayout04"
+            android:background="@drawable/normal_button"
+            android:gravity="top"
+            android:paddingLeft="10dip"
+            android:paddingTop="15dip" >
+
+            <TextView
+                android:id="@+id/b_tv"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_alignBottom="@+id/b_sb"
+                android:layout_alignParentLeft="true"
+                android:layout_centerVertical="true"
+                android:text="@string/blue"
+                android:textAppearance="?android:attr/textAppearanceMedium" />
+            
+            <SeekBar
+                android:id="@+id/b_sb"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_centerVertical="true"
+                android:layout_marginLeft="10dp"
+                android:layout_toLeftOf="@+id/blue_b"
+                android:max="255"
+                android:layout_toRightOf="@+id/b_tv" />
+
+            <Button
+                android:id="@+id/blue_b"
+                style="?android:attr/buttonStyleSmall"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_alignParentRight="true"
+                android:layout_centerVertical="true"
+                android:text="@string/set" />
+
+        </RelativeLayout>
+        
+        <RelativeLayout
+            android:id="@+id/RelativeLayout06"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignLeft="@+id/RelativeLayout01"
+            android:layout_alignRight="@+id/RelativeLayout01"
+            android:layout_below="@+id/RelativeLayout05"
+            android:background="@drawable/normal_button"
+            android:gravity="top"
+            android:paddingLeft="10dip"
+            android:paddingTop="15dip" >
+
+            <TextView
+                android:id="@+id/a_tv"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_alignBottom="@+id/a_sb"
+                android:layout_alignParentLeft="true"
+                android:layout_centerVertical="true"
+                android:text="@string/alpha"
+                android:textAppearance="?android:attr/textAppearanceMedium" />
+            
+            <SeekBar
+                android:id="@+id/a_sb"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_centerVertical="true"
+                android:layout_marginLeft="10dp"
+                android:layout_toLeftOf="@+id/alpha_b"
+                android:max="255"
+                android:layout_toRightOf="@+id/a_tv" />
+
+            <Button
+                android:id="@+id/alpha_b"
+                style="?android:attr/buttonStyleSmall"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_alignParentRight="true"
+                android:layout_centerVertical="true"
+                android:text="@string/set" />
+
+        </RelativeLayout>
+        
+</RelativeLayout>
+</ScrollView>
