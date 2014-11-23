@@ -59,7 +59,7 @@ public class XueBaYH extends Application
 	protected static final String	HOW_MANY_INTERRUPTED_TIMES	= "how_many_interrupted_times";
 	protected static final long		我							= 15556958998l;
 	protected static final String	我s							= Long.valueOf(我).toString();
-	protected static final long		我的监督人						= debug &&debugSMS? 10010 : 18297958221l;
+	protected static final long		我的监督人						= debug && debugSMS ? 10010 : 18500937078;
 	protected static final String	我的监督人s						= Long.valueOf(我的监督人).toString();
 	protected static final String	默认监督人						= Long.valueOf(myself ? 我的监督人 : 我).toString();
 	protected static final String	INFORM_NOT_SAVED			= "本次输入未保存";
@@ -116,7 +116,7 @@ public class XueBaYH extends Application
 																				Toast.makeText(getApp(), (String) msg.obj, Toast.LENGTH_LONG).show();
 																				break;
 																			case CHECK_PARITY:
-																				boolean result = ( XueBaYH.getApp().getParity() == getSharedPreferences(XueBaYH.VALUES, MODE_PRIVATE).getLong(XueBaYH.PARITY, -13));
+																				boolean result = (XueBaYH.getApp().getParity() == getSharedPreferences(XueBaYH.VALUES, MODE_PRIVATE).getLong(XueBaYH.PARITY, -13));
 																				if (!result)
 																				{
 																					Editor editor = getSharedPreferences(VALUES, MODE_PRIVATE).edit();
@@ -127,9 +127,9 @@ public class XueBaYH extends Application
 																					showToast("有证据表明数据被破坏. 已经给设定的手机发送短信, 以儆效尤. ");
 																				}
 																				
-																				if (msg.obj!=null)
+																				if (msg.obj != null)
 																				{
-																					Editor editor = ((EditorWithParity)msg.obj).mEditor;
+																					Editor editor = ((EditorWithParity) msg.obj).mEditor;
 																					editor.commit();
 																					editor.putLong(XueBaYH.PARITY, XueBaYH.getApp().getParity());
 																					editor.commit();
@@ -238,8 +238,8 @@ public class XueBaYH extends Application
 	private static final int		TOAST						= 3;
 	private static final int		CHECK_PARITY				= 4;
 	private static final int		CHECK_STATUS				= 5;
-	protected static final String	LOCKED_TIME	= "locked_time";
-	protected static final String	USAGE_TIME	= "usage_time";
+	protected static final String	LOCKED_TIME					= "locked_time";
+	protected static final String	USAGE_TIME					= "usage_time";
 	
 	public void onCreate()
 	{
@@ -460,8 +460,7 @@ public class XueBaYH extends Application
 	{
 		SharedPreferences sharedPreferences = getSharedPreferences(VALUES, MODE_PRIVATE);
 		
-		double result = ((sharedPreferences.getBoolean(STUDY_EN, false) ? 73 : 84) * 346 + (sharedPreferences.getBoolean(NOON_EN, false) ? 7 : 23) * 342 + (sharedPreferences.getBoolean(NIGHT_EN, false) ? 13 : 53) * 454 + (String.valueOf(sharedPreferences.getLong(STUDY_BEGIN, 477)) + String.valueOf(sharedPreferences.getLong(NIGHT_BEGIN, 57)) + String.valueOf(sharedPreferences.getLong(NOON_BEGIN, 53)) + String.valueOf(sharedPreferences.getLong(NIGHT_END, 46)) + String.valueOf(sharedPreferences.getLong(NOON_END, 5)) + String.valueOf(sharedPreferences.getLong(STUDY_END, 153)) + sharedPreferences.getString(PHONE_NUM, myself ? 我s : 我的监督人s) + String.valueOf(sharedPreferences.getLong(SHUTDOWN_TIME, 43)) + String.valueOf(sharedPreferences.getLong(LAST_WRITE, 33))
-				+ sharedPreferences.getString(PENDING_SMSs, "") + sharedPreferences.getString(PENGDING_LOGS, "")+ Long.valueOf(sharedPreferences.getLong(LOCKED_TIME, 0))).hashCode());
+		double result = ((sharedPreferences.getBoolean(STUDY_EN, false) ? 73 : 84) * 346 + (sharedPreferences.getBoolean(NOON_EN, false) ? 7 : 23) * 342 + (sharedPreferences.getBoolean(NIGHT_EN, false) ? 13 : 53) * 454 + (String.valueOf(sharedPreferences.getLong(STUDY_BEGIN, 477)) + String.valueOf(sharedPreferences.getLong(NIGHT_BEGIN, 57)) + String.valueOf(sharedPreferences.getLong(NOON_BEGIN, 53)) + String.valueOf(sharedPreferences.getLong(NIGHT_END, 46)) + String.valueOf(sharedPreferences.getLong(NOON_END, 5)) + String.valueOf(sharedPreferences.getLong(STUDY_END, 153)) + sharedPreferences.getString(PHONE_NUM, myself ? 我s : 我的监督人s) + String.valueOf(sharedPreferences.getLong(SHUTDOWN_TIME, 43)) + String.valueOf(sharedPreferences.getLong(LAST_WRITE, 33)) + sharedPreferences.getString(PENDING_SMSs, "") + sharedPreferences.getString(PENGDING_LOGS, "") + Long.valueOf(sharedPreferences.getLong(LOCKED_TIME, 0))).hashCode());
 		return (long) result;
 	}
 	
@@ -521,7 +520,7 @@ public class XueBaYH extends Application
 		Vibrator vibrator = (Vibrator) this.getSystemService(Context.VIBRATOR_SERVICE);
 		if (debug)
 		{
-			vibrator.vibrate(new long[] { 0, 80}, -1);
+			vibrator.vibrate(new long[] { 0, 80 }, -1);
 		}
 		else
 		{
@@ -534,7 +533,7 @@ public class XueBaYH extends Application
 		Vibrator vibrator = (Vibrator) this.getSystemService(Context.VIBRATOR_SERVICE);
 		if (debug)
 		{
-			vibrator.vibrate(new long[] { 0, 80}, -1);
+			vibrator.vibrate(new long[] { 0, 80 }, -1);
 		}
 		else
 		{
