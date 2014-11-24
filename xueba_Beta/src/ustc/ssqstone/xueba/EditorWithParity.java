@@ -29,7 +29,7 @@ public class EditorWithParity
 	
 	public void commit()
 	{
-		XueBaYH.checkParity(this);
+		XueBaYH.refershParity(this);
 	}
 	
 	public Editor putBoolean(String key, boolean value)

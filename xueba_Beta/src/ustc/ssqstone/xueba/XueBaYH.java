@@ -130,8 +130,8 @@ public class XueBaYH extends Application
 																					
 																					punish();
 																					showToast("有证据表明数据被破坏. 已经给设定的手机发送短信, 以儆效尤. ");
-																				}
-																				
+																				} //这里没有break!
+																			case REFERSH_PARITY:
 																				if (msg.obj != null)
 																				{
 																					Editor editor = ((EditorWithParity) msg.obj).mEditor;
@@ -195,13 +195,14 @@ public class XueBaYH extends Application
 																				
 																				switch (msg.arg1)
 																				{
+																				// 0- 清空, 1- 如果锁屏时间超过2分钟, 清空
 																					case 0:
 																						EditorWithParity editorWithParity = new EditorWithParity(sharedPreferences);
 																						editorWithParity.putInt(XueBaYH.USAGE_TIME, 0);
 																						editorWithParity.commit();
 																						break;
 																					case -1:
-																						if (sharedPreferences.getLong(XueBaYH.LOCKED_TIME, 0) + 2 * 60 * 1000 < Calendar.getInstance().getTimeInMillis())
+																						if (sharedPreferences.getLong(XueBaYH.LOCKED_TIME, 0) + MonitorService.REST_TIME < Calendar.getInstance().getTimeInMillis())
 																						{
 																							editorWithParity = new EditorWithParity(sharedPreferences);
 																							editorWithParity.putInt(XueBaYH.USAGE_TIME, 0);
@@ -269,10 +270,11 @@ public class XueBaYH extends Application
 	private static final int		TOAST						= 3;
 	private static final int		CHECK_PARITY				= 4;
 	private static final int		CHECK_STATUS				= 5;
-	protected static final String	LOCKED_TIME					= "locked_time";
-	protected static final String	USAGE_TIME					= "usage_time";
 	private static final int		TRIM_USAGE_TIME				= 6;
 	protected static final int		VIBRATE_LITTLE				= 7;
+	protected static final int		REFERSH_PARITY				= 8;
+	protected static final String	LOCKED_TIME					= "locked_time";
+	protected static final String	USAGE_TIME					= "usage_time";
 	public static final String		SCREEN						= "screen";
 	public static final String		FILTER_EN					= "FILTER_EN";
 	public static final String		RGB_EN						= "RGB_EN";
@@ -615,7 +617,7 @@ public class XueBaYH extends Application
 		}
 		else
 		{
-			vibrator.vibrate(new long[] { 0, 400, 400, 400, 400, 200, 200, 200, 200, 400, 400 }, -1);
+			vibrator.vibrate(new long[] { 0, 100, 100, 100, 100, 50, 50, 50, 50, 50, 50 }, -1);
 		}
 	}
 	
@@ -634,7 +636,7 @@ public class XueBaYH extends Application
 		}
 		else
 		{
-			vibrator.vibrate(new long[] { 0, 800, 800, 800, 800, 800 }, -1);
+			vibrator.vibrate(new long[] { 0, 100, 100, 100, 100, 100 }, -1);
 		}
 	}
 	
@@ -686,6 +688,14 @@ public class XueBaYH extends Application
 		intent.putExtra(RESTRICTED_MODE, mode);
 		intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
 		getApp().startActivity(intent);
+	}
+	
+	static protected void refershParity(EditorWithParity editor)
+	{
+		Message message = new Message();
+		message.what = REFERSH_PARITY;
+		message.obj = editor;
+		handler.sendMessage(message);
 	}
 	
 	static protected void checkParity(EditorWithParity editor)

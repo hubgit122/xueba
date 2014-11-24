@@ -104,7 +104,7 @@ public class MainActivity extends Activity
 	 */
 	protected void resumeData()
 	{
-		//Log.i("xueba", "resume");
+		////Log.i("xueba", "resume");
 		XueBaYH.checkParity(null);
 		
 		SharedPreferences values = getSharedPreferences(XueBaYH.VALUES, MODE_PRIVATE);
@@ -275,7 +275,7 @@ public class MainActivity extends Activity
 	 */
 	private void initView()
 	{
-		//Log.i("xueba", "initview");
+		////Log.i("xueba", "initview");
 		
 		noonCB = (CheckBox) findViewById(R.id.noon_cb);
 		nightCB = (CheckBox) findViewById(R.id.night_cb);
@@ -657,7 +657,7 @@ public class MainActivity extends Activity
 																		switch (v.getId())
 																		{
 																			case R.id.setting_ok_b:
-																				if (checkData())
+																				if (saveData())
 																				{
 																					RennClient rennClient = XueBaYH.getRennClient();
 																					
@@ -681,10 +681,7 @@ public class MainActivity extends Activity
 																						});
 																						rennClient.login(MainActivity.this);
 																					}
-																					else
-																					{
-																						XueBaYH.showToast("人人已登录");
-																					}
+																					
 																					XueBaYH.restartMonitorService();
 																					finish();
 																				}
@@ -708,6 +705,7 @@ public class MainActivity extends Activity
 	 */
 	protected boolean saveData()
 	{
+		//Log.i("trace", "save");
 		boolean resault = checkData();
 		
 		if (resault)
@@ -735,12 +733,6 @@ public class MainActivity extends Activity
 			editor.putLong(XueBaYH.STUDY_BEGIN, studyBegin);
 			editor.putString(XueBaYH.PHONE_NUM, phoneTV.getText().toString());
 			editor.commit();
-			
-			XueBaYH.showToast(XueBaYH.INFORM_SAVED);
-		}
-		else
-		{
-			XueBaYH.showToast(XueBaYH.INFORM_WON_T_SAVE);
 		}
 		return resault;
 	}
@@ -848,9 +840,14 @@ public class MainActivity extends Activity
 	@Override
 	protected void onDestroy()
 	{
+		//Log.i("trace", "onDestroy");
 		if (!saveData())
 		{
 			XueBaYH.showToast(XueBaYH.INFORM_NOT_SAVING);
+		}
+		else
+		{
+			XueBaYH.showToast(XueBaYH.INFORM_SAVED);
 		}
 		
 		super.onDestroy();

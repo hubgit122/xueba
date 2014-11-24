@@ -59,7 +59,7 @@ import android.view.WindowManager.LayoutParams;
  */
 public class MonitorService extends Service
 {
-	private static final int	REST_TIME		= XueBaYH.debugRest ? 10 * 1000 : 120 * 1000;
+	protected static final int	REST_TIME		= XueBaYH.debugRest ? 10 * 1000 : 120 * 1000;
 	private static final int	MAX_USE_TIME	= XueBaYH.debugRest ? 10 * 1000 : 1000 * 60 * 45;
 	private static final String	LAST_SURF_DATE	= "last surf date";
 	private static final String	SURF_TIME_OF_S	= "surf time of ";
@@ -240,7 +240,7 @@ public class MonitorService extends Service
 			
 			if (tmpStatus == Status.force_resting)
 			{
-				Log.d("remove", "" + now + "::" + getSharedPreferences(XueBaYH.VALUES, MODE_PRIVATE).getInt(XueBaYH.USAGE_TIME, 0) + ":" + tmpStatus);
+				//Log.d("remove", "" + now + "::" + getSharedPreferences(XueBaYH.VALUES, MODE_PRIVATE).getInt(XueBaYH.USAGE_TIME, 0) + ":" + tmpStatus);
 				handler.sendEmptyMessage(REMOVE_VIEW);
 			}
 			else
@@ -253,7 +253,7 @@ public class MonitorService extends Service
 		{
 			if (getSharedPreferences(XueBaYH.VALUES, MODE_PRIVATE).getInt(XueBaYH.USAGE_TIME, 0) > MAX_USE_TIME && (tmpStatus != Status.force_resting))
 			{
-				Log.d("add", "" + now + "::" + getSharedPreferences(XueBaYH.VALUES, MODE_PRIVATE).getInt(XueBaYH.USAGE_TIME, 0) + ":" + tmpStatus);
+				//Log.d("add", "" + now + "::" + getSharedPreferences(XueBaYH.VALUES, MODE_PRIVATE).getInt(XueBaYH.USAGE_TIME, 0) + ":" + tmpStatus);
 				handler.sendEmptyMessage(ADD_VIEW);
 				
 				status = Status.force_resting;
@@ -415,6 +415,7 @@ public class MonitorService extends Service
 	@Override
 	public int onStartCommand(Intent intent, int flags, int startId)
 	{
+		//Log.i("trace", "onStartCommand");
 		super.onStartCommand(intent, flags, startId);
 		
 		loadStatus();
@@ -651,6 +652,8 @@ public class MonitorService extends Service
 		
 		String packageName = localComponentName.getPackageName();
 		
+		Log.i("package", packageName);
+		
 		if (status == Status.halting)
 		{
 			String[] strings = "UCMobile uc.browser chrome browser dolphin.browser tencent.mtt sogou.mobile.explorer baidu.browser oupeng.mini opera".split(" ");
@@ -704,7 +707,7 @@ public class MonitorService extends Service
 		}
 		else
 		{
-			String permitted = ("ustc.ssqstone.xueba com.android.settings GSW.AddinTimer com.zdworks.android.zdclock com.dianxinos.clock com.android.phone com.android.contacts com.android.mms com.jb.gosms com.snda.youni org.dayup.gnotes de.softxperience.android.noteeverything " + ((status == Status.studying) ? ("cn.ssdl.bluedict com.ghisler.android.TotalCommander udk.android.reader jp.ne.kutu.Panecal com.diotek.diodict3.phone.samsung.chn com.docin.zlibrary.ui.android com.towords com.youdao.note com.duokan.reader com.baidu.wenku com.nd.android.pandareader com.qq.reader com.lectek.android.sfreader bubei.tingshu ") : "")); // ,
+			String permitted = ("com.yy.yymeet ustc.ssqstone.xueba com.android.settings GSW.AddinTimer com.zdworks.android.zdclock com.dianxinos.clock com.android.phone com.android.contacts com.android.mms com.jb.gosms com.snda.youni org.dayup.gnotes de.softxperience.android.noteeverything " + ((status == Status.studying) ? ("com.eusoft.eudic cn.ssdl.bluedict com.ghisler.android.TotalCommander udk.android.reader jp.ne.kutu.Panecal com.diotek.diodict3.phone.samsung.chn com.docin.zlibrary.ui.android com.towords com.youdao.note com.duokan.reader com.baidu.wenku com.nd.android.pandareader com.qq.reader com.lectek.android.sfreader bubei.tingshu ") : "")); // ,
 			
 			for (String nameString : permitted.split(" "))
 			{
